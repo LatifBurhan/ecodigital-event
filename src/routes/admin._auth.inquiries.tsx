@@ -42,7 +42,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/_auth/inquiries")({
   head: () => ({ meta: [{ title: "Data Pendaftar — ECO-DIGITAL EVENT KIT" }] }),
-  component: InquiriesPage;
+  component: InquiriesPage,
 });
 
 const PAGE_SIZE = 10;
