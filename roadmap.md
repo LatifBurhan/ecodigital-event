@@ -7,4 +7,4 @@
 - [x] Admin login + layout terproteksi
 - [x] Dashboard metrik & chart
 - [x] Tabel pendaftar: search, filter, detail, status, hapus, WhatsApp, CSV
-- [ ] Verifikasi end-to-end (submit form publik + login admin)
+- [x] Verifikasi end-to-end (form publik + login admin + tabel data)
