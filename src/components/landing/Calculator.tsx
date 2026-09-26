@@ -49,7 +49,7 @@ export function Calculator() {
                 min={50}
                 max={5000}
                 step={50}
-                onValueChange={([v]) => setParticipants(v)}
+                onValueChange={([v]) => setParticipants(v ?? 0)}
                 aria-label="Jumlah peserta"
               />
               <div className="mt-2 flex justify-between font-mono text-[0.68rem] text-muted-foreground">
@@ -79,7 +79,7 @@ export function Calculator() {
                 min={1}
                 max={20}
                 step={1}
-                onValueChange={([v]) => setDocs(v)}
+                onValueChange={([v]) => setDocs(v ?? 1)}
                 aria-label="Dokumen cetak per peserta"
               />
               <div className="mt-2 flex justify-between font-mono text-[0.68rem] text-muted-foreground">
