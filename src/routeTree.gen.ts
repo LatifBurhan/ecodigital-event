@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAuthRouteImport } from './routes/admin._auth'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminAuthDashboardRouteImport } from './routes/admin._auth.dashboard'
+import { Route as AdminAuthInquiriesRouteImport } from './routes/admin._auth.inquiries'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,36 +36,65 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAuthDashboardRoute = AdminAuthDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminAuthRoute,
+} as any)
+const AdminAuthInquiriesRoute = AdminAuthInquiriesRouteImport.update({
+  id: '/inquiries',
+  path: '/inquiries',
+  getParentRoute: () => AdminAuthRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminAuthRoute
+  '/admin': typeof AdminAuthRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/dashboard': typeof AdminAuthDashboardRoute
+  '/admin/inquiries': typeof AdminAuthInquiriesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminIndexRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/dashboard': typeof AdminAuthDashboardRoute
+  '/admin/inquiries': typeof AdminAuthInquiriesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin/_auth': typeof AdminAuthRoute
+  '/admin/_auth': typeof AdminAuthRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/_auth/dashboard': typeof AdminAuthDashboardRoute
+  '/admin/_auth/inquiries': typeof AdminAuthInquiriesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/admin/login' | '/admin/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/admin/login'
+    | '/admin/'
+    | '/admin/dashboard'
+    | '/admin/inquiries'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/admin/login'
-  id: '__root__' | '/' | '/admin/_auth' | '/admin/login' | '/admin/'
+  to: '/' | '/admin' | '/admin/login' | '/admin/dashboard' | '/admin/inquiries'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin/_auth'
+    | '/admin/login'
+    | '/admin/'
+    | '/admin/_auth/dashboard'
+    | '/admin/_auth/inquiries'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminAuthRoute: typeof AdminAuthRoute
+  AdminAuthRoute: typeof AdminAuthRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -98,12 +129,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/_auth/dashboard': {
+      id: '/admin/_auth/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminAuthDashboardRouteImport
+      parentRoute: typeof AdminAuthRoute
+    }
+    '/admin/_auth/inquiries': {
+      id: '/admin/_auth/inquiries'
+      path: '/inquiries'
+      fullPath: '/admin/inquiries'
+      preLoaderRoute: typeof AdminAuthInquiriesRouteImport
+      parentRoute: typeof AdminAuthRoute
+    }
   }
 }
 
+interface AdminAuthRouteChildren {
+  AdminAuthDashboardRoute: typeof AdminAuthDashboardRoute
+  AdminAuthInquiriesRoute: typeof AdminAuthInquiriesRoute
+}
+
+const AdminAuthRouteChildren: AdminAuthRouteChildren = {
+  AdminAuthDashboardRoute: AdminAuthDashboardRoute,
+  AdminAuthInquiriesRoute: AdminAuthInquiriesRoute,
+}
+
+const AdminAuthRouteWithChildren = AdminAuthRoute._addFileChildren(
+  AdminAuthRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminAuthRoute: AdminAuthRoute,
+  AdminAuthRoute: AdminAuthRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
