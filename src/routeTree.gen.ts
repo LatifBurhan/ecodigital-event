@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAuthRouteImport } from './routes/admin._auth'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as EventsSlugRouteImport } from './routes/events.$slug'
+import { Route as TiketCodeRouteImport } from './routes/tiket.$code'
 import { Route as AdminAuthDashboardRouteImport } from './routes/admin._auth.dashboard'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +37,16 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventsSlugRoute = EventsSlugRouteImport.update({
+  id: '/events/$slug',
+  path: '/events/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TiketCodeRoute = TiketCodeRouteImport.update({
+  id: '/tiket/$code',
+  path: '/tiket/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAuthDashboardRoute = AdminAuthDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -45,6 +57,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminAuthRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/events/$slug': typeof EventsSlugRoute
+  '/tiket/$code': typeof TiketCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/dashboard': typeof AdminAuthDashboardRoute
 }
@@ -52,6 +66,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminIndexRoute
   '/admin/login': typeof AdminLoginRoute
+  '/events/$slug': typeof EventsSlugRoute
+  '/tiket/$code': typeof TiketCodeRoute
   '/admin/dashboard': typeof AdminAuthDashboardRoute
 }
 export interface FileRoutesById {
@@ -59,19 +75,36 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin/_auth': typeof AdminAuthRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
+  '/events/$slug': typeof EventsSlugRoute
+  '/tiket/$code': typeof TiketCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/_auth/dashboard': typeof AdminAuthDashboardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/admin/login' | '/admin/' | '/admin/dashboard'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/admin/login'
+    | '/events/$slug'
+    | '/tiket/$code'
+    | '/admin/'
+    | '/admin/dashboard'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/admin/login' | '/admin/dashboard'
+  to:
+    | '/'
+    | '/admin'
+    | '/admin/login'
+    | '/events/$slug'
+    | '/tiket/$code'
+    | '/admin/dashboard'
   id:
     | '__root__'
     | '/'
     | '/admin/_auth'
     | '/admin/login'
+    | '/events/$slug'
+    | '/tiket/$code'
     | '/admin/'
     | '/admin/_auth/dashboard'
   fileRoutesById: FileRoutesById
@@ -80,6 +113,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminAuthRoute: typeof AdminAuthRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
+  EventsSlugRoute: typeof EventsSlugRoute
+  TiketCodeRoute: typeof TiketCodeRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -113,6 +148,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/events/$slug': {
+      id: '/events/$slug'
+      path: '/events/$slug'
+      fullPath: '/events/$slug'
+      preLoaderRoute: typeof EventsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tiket/$code': {
+      id: '/tiket/$code'
+      path: '/tiket/$code'
+      fullPath: '/tiket/$code'
+      preLoaderRoute: typeof TiketCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/_auth/dashboard': {
       id: '/admin/_auth/dashboard'
       path: '/dashboard'
@@ -139,6 +188,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminAuthRoute: AdminAuthRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
+  EventsSlugRoute: EventsSlugRoute,
+  TiketCodeRoute: TiketCodeRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport
