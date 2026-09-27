@@ -8,6 +8,13 @@
       "when": 1790445403837,
       "tag": "0000_eco_digital_partner_inquiries",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790501711099,
+      "tag": "0001_events_and_registrations",
+      "breakpoints": true
     }
   ]
 }

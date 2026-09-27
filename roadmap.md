@@ -1,10 +1,10 @@
 # ECO-DIGITAL EVENT KIT — Roadmap
 
-- [x] Database `partner_inquiries` + `user_roles` + RLS
-- [x] Akun admin awal + role admin
-- [x] Design system eco-digital (styles.css)
-- [x] Landing page: nav, hero, fitur, kalkulator, tentang, form minat mitra, footer
-- [x] Admin login + layout terproteksi
-- [x] Dashboard metrik & chart
-- [x] Tabel pendaftar: search, filter, detail, status, hapus, WhatsApp, CSV
-- [x] Verifikasi end-to-end (form publik + login admin + tabel data)
+- [x] Database event + pendaftar + penyimpanan poster & bukti bayar
+- [x] Admin: buat/edit/hapus event (field wajib 1-6, opsional disembunyikan)
+- [x] Landing: kartu event -> detail -> daftar
+- [x] Event berbayar: metode pembayaran, upload bukti, approve manual
+- [x] Tiket QR (gratis langsung, berbayar setelah disetujui)
+- [x] Admin kelola pendaftar: setujui/tolak, check-in, WhatsApp, hapus, CSV
+- [x] Hapus formulir minat mitra lama
+- [ ] Verifikasi end-to-end

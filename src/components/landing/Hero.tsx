@@ -37,8 +37,8 @@ export function Hero() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="rounded-full">
-              <a href="#contact">
-                Konsultasi Pilot Project <Send className="size-4" />
+              <a href="#events">
+                Lihat Event <Send className="size-4" />
               </a>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full bg-card">

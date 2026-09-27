@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { href: "#beranda", label: "Beranda" },
-  { href: "#features", label: "Fitur" },
-  { href: "#green-impact", label: "Green Impact" },
-  { href: "#about", label: "Tentang" },
-  { href: "#contact", label: "Kontak" },
+  { href: "/#beranda", label: "Beranda" },
+  { href: "/#events", label: "Event" },
+  { href: "/#features", label: "Fitur" },
+  { href: "/#green-impact", label: "Green Impact" },
+  { href: "/#about", label: "Tentang" },
 ];
 
 export function SiteNav() {
@@ -52,8 +52,8 @@ export function SiteNav() {
 
         <div className="hidden md:block">
           <Button asChild className="rounded-full">
-            <a href="#contact">
-              Konsultasi Pilot Project <ArrowRight className="size-4" />
+            <a href="/#events">
+              Lihat Event <ArrowRight className="size-4" />
             </a>
           </Button>
         </div>
@@ -84,8 +84,8 @@ export function SiteNav() {
             ))}
           </nav>
           <Button asChild className="mt-3 w-full rounded-full">
-            <a href="#contact" onClick={() => setOpen(false)}>
-              Konsultasi Pilot Project <ArrowRight className="size-4" />
+            <a href="/#events" onClick={() => setOpen(false)}>
+              Lihat Event <ArrowRight className="size-4" />
             </a>
           </Button>
         </div>

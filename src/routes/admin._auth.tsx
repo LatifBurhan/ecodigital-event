@@ -8,7 +8,7 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, Inbox, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, CalendarDays, LogOut, Menu, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/admin/_auth")({
 
 const nav = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/inquiries", label: "Data Pendaftar", icon: Inbox },
+  { to: "/admin/events", label: "Kelola Event", icon: CalendarDays },
 ] as const;
 
 function AdminLayout() {
@@ -120,7 +120,7 @@ function AdminLayout() {
               {open ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
             <h1 className="font-display text-lg font-bold">
-              {pathname.includes("inquiries") ? "Data Pendaftar" : "Dashboard"}
+              {pathname.includes("/events") ? "Kelola Event" : "Dashboard"}
             </h1>
           </div>
           <div className="flex items-center gap-3">

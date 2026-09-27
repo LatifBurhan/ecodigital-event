@@ -23,14 +23,14 @@ export function SiteFooter() {
             Less material · More meaning
           </p>
           <div className="flex gap-5 text-sm text-forest-foreground/75">
-            <a href="#features" className="transition-colors hover:text-mint">
+            <a href="/#features" className="transition-colors hover:text-mint">
               Fitur
             </a>
-            <a href="#green-impact" className="transition-colors hover:text-mint">
+            <a href="/#green-impact" className="transition-colors hover:text-mint">
               Green Impact
             </a>
-            <a href="#contact" className="transition-colors hover:text-mint">
-              Kontak
+            <a href="/#events" className="transition-colors hover:text-mint">
+              Event
             </a>
             <Link to="/admin/login" className="transition-colors hover:text-mint">
               Admin
