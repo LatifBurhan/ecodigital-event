@@ -21,6 +21,8 @@ import {
   type SocialLink,
 } from "@/lib/events";
 
+type ErrKey = "title" | "startDate" | "endDate" | "location" | "mapsUrl" | "organizer" | "poster" | "price" | "payments";
+
 export function EventForm({ initial }: { initial?: EventRow }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -42,12 +44,12 @@ export function EventForm({ initial }: { initial?: EventRow }) {
   const [published, setPublished] = useState(initial?.is_published ?? true);
   const [regOpen, setRegOpen] = useState(initial?.registration_open ?? true);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Partial<Record<ErrKey, string>>>({});
 
   const preview = posterFile ? URL.createObjectURL(posterFile) : posterUrl;
 
   function validate() {
-    const e: Record<string, string> = {};
+    const e: Partial<Record<ErrKey, string>> = {};
     if (title.trim().length < 3) e.title = "Nama event wajib diisi.";
     if (!startDate) e.startDate = "Tanggal mulai wajib diisi.";
     if (!endDate) e.endDate = "Tanggal selesai wajib diisi.";

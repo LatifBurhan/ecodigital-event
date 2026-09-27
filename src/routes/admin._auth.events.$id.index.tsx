@@ -58,7 +58,10 @@ function Registrations() {
 
   async function update(r: Registration, patch: Partial<Registration>, msg: string) {
     const { error } = await supabase.from("event_registrations").update(patch).eq("id", r.id);
-    if (error) return toast.error("Gagal memperbarui data.");
+    if (error) {
+      toast.error("Gagal memperbarui data.");
+      return;
+    }
     toast.success(msg);
     refresh();
   }
