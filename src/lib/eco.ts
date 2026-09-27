@@ -1,17 +1,3 @@
-export const EVENT_TYPES = [
-  "Conference",
-  "Seminar",
-  "Workshop",
-  "Meeting",
-  "Exhibition",
-  "Lainnya",
-] as const;
-
-export type EventType = (typeof EVENT_TYPES)[number];
-
-export const STATUSES = ["Baru", "Dihubungi", "Dalam Proses", "Selesai"] as const;
-export type InquiryStatus = (typeof STATUSES)[number];
-
 /** Asumsi simulasi (ilustratif, bukan hasil audit lingkungan). */
 export const ASSUMPTIONS = {
   gramPerSheet: 5,
@@ -47,14 +33,6 @@ export function normalizeWhatsapp(raw: string) {
   return digits;
 }
 
-export function whatsappLink(number: string, organizerName: string) {
-  const message = `Halo ${organizerName}, kami dari tim ECO-DIGITAL EVENT KIT. Terima kasih telah mengirimkan minat kemitraan. Kami ingin berdiskusi lebih lanjut mengenai kebutuhan digitalisasi acara Anda.`;
+export function waLink(number: string, message: string) {
   return `https://wa.me/${normalizeWhatsapp(number)}?text=${encodeURIComponent(message)}`;
 }
-
-export const STATUS_STYLES: Record<InquiryStatus, string> = {
-  Baru: "bg-lime/25 text-forest-deep border-lime/50",
-  Dihubungi: "bg-mint/25 text-forest-deep border-mint/50",
-  "Dalam Proses": "bg-soft text-forest border-border",
-  Selesai: "bg-forest text-forest-foreground border-forest",
-};
