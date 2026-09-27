@@ -57,8 +57,8 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
         _name: name,
         _email: email,
         _whatsapp: whatsapp,
-        _payment_method: event.is_paid ? method : undefined,
-        _proof_path: proofPath ?? undefined,
+        ...(event.is_paid ? { _payment_method: method } : {}),
+        ...(proofPath ? { _proof_path: proofPath } : {}),
       });
       if (error || !data) throw new Error(error?.message ?? "Pendaftaran gagal.");
       try {
