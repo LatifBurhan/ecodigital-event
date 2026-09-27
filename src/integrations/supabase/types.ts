@@ -14,6 +14,131 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_registrations: {
+        Row: {
+          amount: number
+          checked_in_at: string | null
+          created_at: string
+          email: string
+          event_id: string
+          id: string
+          name: string
+          payment_method: string | null
+          payment_proof_path: string | null
+          status: string
+          ticket_code: string
+          updated_at: string
+          whatsapp: string
+        }
+        Insert: {
+          amount?: number
+          checked_in_at?: string | null
+          created_at?: string
+          email: string
+          event_id: string
+          id?: string
+          name: string
+          payment_method?: string | null
+          payment_proof_path?: string | null
+          status?: string
+          ticket_code?: string
+          updated_at?: string
+          whatsapp: string
+        }
+        Update: {
+          amount?: number
+          checked_in_at?: string | null
+          created_at?: string
+          email?: string
+          event_id?: string
+          id?: string
+          name?: string
+          payment_method?: string | null
+          payment_proof_path?: string | null
+          status?: string
+          ticket_code?: string
+          updated_at?: string
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string
+          facilities: string[]
+          id: string
+          is_paid: boolean
+          is_published: boolean
+          lineup: string[]
+          location: string
+          maps_url: string
+          organizer: string
+          payment_methods: Json
+          poster_url: string
+          price: number
+          registration_open: boolean
+          slug: string
+          socials: Json
+          start_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date: string
+          facilities?: string[]
+          id?: string
+          is_paid?: boolean
+          is_published?: boolean
+          lineup?: string[]
+          location: string
+          maps_url: string
+          organizer: string
+          payment_methods?: Json
+          poster_url: string
+          price?: number
+          registration_open?: boolean
+          slug: string
+          socials?: Json
+          start_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          facilities?: string[]
+          id?: string
+          is_paid?: boolean
+          is_published?: boolean
+          lineup?: string[]
+          location?: string
+          maps_url?: string
+          organizer?: string
+          payment_methods?: Json
+          poster_url?: string
+          price?: number
+          registration_open?: boolean
+          slug?: string
+          socials?: Json
+          start_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       partner_inquiries: {
         Row: {
           created_at: string
@@ -85,12 +210,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_ticket: {
+        Args: { _code: string }
+        Returns: {
+          amount: number
+          created_at: string
+          end_date: string
+          event_slug: string
+          event_title: string
+          is_paid: boolean
+          location: string
+          name: string
+          poster_url: string
+          start_date: string
+          status: string
+          ticket_code: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      register_for_event: {
+        Args: {
+          _email: string
+          _event_id: string
+          _name: string
+          _payment_method?: string
+          _proof_path?: string
+          _whatsapp: string
+        }
+        Returns: string
       }
     }
     Enums: {
