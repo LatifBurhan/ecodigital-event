@@ -34,14 +34,24 @@ function d(s: string) {
   return new Date(s + "T00:00:00");
 }
 
+// Nama hari/bulan ditulis manual agar hasil SSR dan browser selalu sama persis.
+const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+const BULAN = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
+function fmt(dt: Date) {
+  return `${dt.getDate()} ${BULAN[dt.getMonth()]} ${dt.getFullYear()}`;
+}
+
 export function formatDateRange(start: string, end: string) {
-  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" };
-  if (start === end) return d(start).toLocaleDateString("id-ID", { weekday: "long", ...opts });
+  if (start === end) return `${HARI[d(start).getDay()]}, ${fmt(d(start))}`;
   const a = d(start);
   const b = d(end);
   if (a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth())
-    return `${a.getDate()}–${b.toLocaleDateString("id-ID", opts)}`;
-  return `${a.toLocaleDateString("id-ID", opts)} – ${b.toLocaleDateString("id-ID", opts)}`;
+    return `${a.getDate()}–${fmt(b)}`;
+  return `${fmt(a)} – ${fmt(b)}`;
 }
 
 export function todayISO() {
