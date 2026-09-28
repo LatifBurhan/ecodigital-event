@@ -27,7 +27,8 @@ export type RegStatus = keyof typeof REG_STATUS;
 
 // Format manual agar identik antara SSR (server) dan browser — Intl currency
 // id-ID menghasilkan spasi berbeda di dua environment dan memicu hydration mismatch.
-export const rupiah = (n: number) => "Rp" + Math.round(n).toLocaleString("id-ID");
+export const rupiah = (n: number) =>
+  "Rp" + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
 function d(s: string) {
   return new Date(s + "T00:00:00");
