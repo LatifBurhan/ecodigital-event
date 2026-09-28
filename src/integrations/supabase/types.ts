@@ -28,6 +28,7 @@ export type Database = {
           status: string
           ticket_code: string
           updated_at: string
+          user_id: string | null
           whatsapp: string
         }
         Insert: {
@@ -43,6 +44,7 @@ export type Database = {
           status?: string
           ticket_code?: string
           updated_at?: string
+          user_id?: string | null
           whatsapp: string
         }
         Update: {
@@ -58,6 +60,7 @@ export type Database = {
           status?: string
           ticket_code?: string
           updated_at?: string
+          user_id?: string | null
           whatsapp?: string
         }
         Relationships: [
@@ -184,6 +187,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          updated_at: string
+          whatsapp: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id: string
+          updated_at?: string
+          whatsapp: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -234,6 +264,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      normalize_wa: { Args: { _p: string }; Returns: string }
       register_for_event: {
         Args: {
           _email: string
