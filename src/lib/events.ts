@@ -25,8 +25,9 @@ export const REG_STATUS = {
 } as const;
 export type RegStatus = keyof typeof REG_STATUS;
 
-export const rupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+// Format manual agar identik antara SSR (server) dan browser — Intl currency
+// id-ID menghasilkan spasi berbeda di dua environment dan memicu hydration mismatch.
+export const rupiah = (n: number) => "Rp" + Math.round(n).toLocaleString("id-ID");
 
 function d(s: string) {
   return new Date(s + "T00:00:00");
