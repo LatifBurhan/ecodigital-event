@@ -16,6 +16,7 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as EventsSlugRouteImport } from './routes/events.$slug'
 import { Route as TiketCodeRouteImport } from './routes/tiket.$code'
 import { Route as AdminAuthDashboardRouteImport } from './routes/admin._auth.dashboard'
+import { Route as AdminAuthScanRouteImport } from './routes/admin._auth.scan'
 import { Route as AdminAuthEventsIndexRouteImport } from './routes/admin._auth.events.index'
 import { Route as AdminAuthEventsNewRouteImport } from './routes/admin._auth.events.new'
 import { Route as AdminAuthEventsIdIndexRouteImport } from './routes/admin._auth.events.$id.index'
@@ -56,6 +57,11 @@ const AdminAuthDashboardRoute = AdminAuthDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AdminAuthRoute,
 } as any)
+const AdminAuthScanRoute = AdminAuthScanRouteImport.update({
+  id: '/scan',
+  path: '/scan',
+  getParentRoute: () => AdminAuthRoute,
+} as any)
 const AdminAuthEventsIndexRoute = AdminAuthEventsIndexRouteImport.update({
   id: '/events/',
   path: '/events/',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/tiket/$code': typeof TiketCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/dashboard': typeof AdminAuthDashboardRoute
+  '/admin/scan': typeof AdminAuthScanRoute
   '/admin/events/new': typeof AdminAuthEventsNewRoute
   '/admin/events/': typeof AdminAuthEventsIndexRoute
   '/admin/events/$id/edit': typeof AdminAuthEventsIdEditRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/events/$slug': typeof EventsSlugRoute
   '/tiket/$code': typeof TiketCodeRoute
   '/admin/dashboard': typeof AdminAuthDashboardRoute
+  '/admin/scan': typeof AdminAuthScanRoute
   '/admin/events/new': typeof AdminAuthEventsNewRoute
   '/admin/events': typeof AdminAuthEventsIndexRoute
   '/admin/events/$id/edit': typeof AdminAuthEventsIdEditRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/tiket/$code': typeof TiketCodeRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/_auth/dashboard': typeof AdminAuthDashboardRoute
+  '/admin/_auth/scan': typeof AdminAuthScanRoute
   '/admin/_auth/events/new': typeof AdminAuthEventsNewRoute
   '/admin/_auth/events/': typeof AdminAuthEventsIndexRoute
   '/admin/_auth/events/$id/edit': typeof AdminAuthEventsIdEditRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/tiket/$code'
     | '/admin/'
     | '/admin/dashboard'
+    | '/admin/scan'
     | '/admin/events/new'
     | '/admin/events/'
     | '/admin/events/$id/edit'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/events/$slug'
     | '/tiket/$code'
     | '/admin/dashboard'
+    | '/admin/scan'
     | '/admin/events/new'
     | '/admin/events'
     | '/admin/events/$id/edit'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/tiket/$code'
     | '/admin/'
     | '/admin/_auth/dashboard'
+    | '/admin/_auth/scan'
     | '/admin/_auth/events/new'
     | '/admin/_auth/events/'
     | '/admin/_auth/events/$id/edit'
@@ -217,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthDashboardRouteImport
       parentRoute: typeof AdminAuthRoute
     }
+    '/admin/_auth/scan': {
+      id: '/admin/_auth/scan'
+      path: '/scan'
+      fullPath: '/admin/scan'
+      preLoaderRoute: typeof AdminAuthScanRouteImport
+      parentRoute: typeof AdminAuthRoute
+    }
     '/admin/_auth/events/': {
       id: '/admin/_auth/events/'
       path: '/events'
@@ -250,6 +269,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminAuthRouteChildren {
   AdminAuthDashboardRoute: typeof AdminAuthDashboardRoute
+  AdminAuthScanRoute: typeof AdminAuthScanRoute
   AdminAuthEventsNewRoute: typeof AdminAuthEventsNewRoute
   AdminAuthEventsIndexRoute: typeof AdminAuthEventsIndexRoute
   AdminAuthEventsIdEditRoute: typeof AdminAuthEventsIdEditRoute
@@ -258,6 +278,7 @@ interface AdminAuthRouteChildren {
 
 const AdminAuthRouteChildren: AdminAuthRouteChildren = {
   AdminAuthDashboardRoute: AdminAuthDashboardRoute,
+  AdminAuthScanRoute: AdminAuthScanRoute,
   AdminAuthEventsNewRoute: AdminAuthEventsNewRoute,
   AdminAuthEventsIndexRoute: AdminAuthEventsIndexRoute,
   AdminAuthEventsIdEditRoute: AdminAuthEventsIdEditRoute,
