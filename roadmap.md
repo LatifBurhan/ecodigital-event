@@ -7,4 +7,5 @@
 - [x] Tiket QR (gratis langsung, berbayar setelah disetujui)
 - [x] Admin kelola pendaftar: setujui/tolak, check-in, WhatsApp, hapus, CSV
 - [x] Hapus formulir minat mitra lama
-- [ ] Verifikasi end-to-end
+- [x] Verifikasi end-to-end
+- [x] Scan QR tiket + check-in peserta di admin (/admin/scan)
