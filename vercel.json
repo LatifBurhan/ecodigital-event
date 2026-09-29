@@ -1,8 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/process-certificates",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  "buildCommand": "bun run build",
+  "framework": "vite"
 }
