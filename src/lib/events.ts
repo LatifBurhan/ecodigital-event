@@ -125,14 +125,39 @@ export const adminRegistrationsQuery = (eventId: string) =>
     queryFn: async (): Promise<Registration[]> => {
       const { data, error } = await supabase
         .from("event_registrations")
-        .select(`
-          *,
-          certificates(id, certificate_url, issued_at),
-          certificate_queue(id, status, error_message)
-        `)
+        .select("*")
         .eq("event_id", eventId)
         .order("created_at", { ascending: false});
-      if (error) throw error;
+      
+      if (error) {
+        console.error("[adminRegistrationsQuery] Error:", error);
+        throw error;
+      }
+      
+      // Fetch certificate data separately to avoid join issues
+      if (data && data.length > 0) {
+        const registrationIds = data.map(r => r.id);
+        
+        // Fetch certificates
+        const { data: certs } = await supabase
+          .from("certificates")
+          .select("id, registration_id, certificate_url, issued_at")
+          .in("registration_id", registrationIds);
+        
+        // Fetch certificate queue
+        const { data: queue } = await supabase
+          .from("certificate_queue")
+          .select("id, registration_id, status, error_message")
+          .in("registration_id", registrationIds);
+        
+        // Attach certificate data to each registration
+        return data.map(reg => ({
+          ...reg,
+          certificates: certs?.filter(c => c.registration_id === reg.id) || [],
+          certificate_queue: queue?.filter(q => q.registration_id === reg.id) || [],
+        })) as any;
+      }
+      
       return data ?? [];
     },
   });
