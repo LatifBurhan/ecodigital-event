@@ -75,17 +75,8 @@ export function useEnsureProfile(user: User | null) {
         const meta = user.user_metadata;
         const email = user.email;
 
-        // Normalize WhatsApp number
-        const rawWa = String(meta?.whatsapp || "").replace(/\D/g, "");
-        const normalizedWa = rawWa.startsWith("0")
-          ? "62" + rawWa.slice(1)
-          : rawWa.startsWith("8")
-            ? "62" + rawWa
-            : rawWa;
-
-        // Validate required fields
-        if (!meta?.full_name || !normalizedWa || !email) {
-          console.warn("[useEnsureProfile] Missing required metadata - user needs to complete profile manually");
+        if (!email) {
+          console.error("[useEnsureProfile] No email found - cannot create profile");
           if (isMounted) {
             setProfileExists(false);
             setIsChecking(false);
@@ -93,12 +84,34 @@ export function useEnsureProfile(user: User | null) {
           return;
         }
 
-        // Insert profile
+        // Normalize WhatsApp number (optional)
+        const rawWa = String(meta?.whatsapp || "").replace(/\D/g, "");
+        const normalizedWa = rawWa 
+          ? (rawWa.startsWith("0")
+              ? "62" + rawWa.slice(1)
+              : rawWa.startsWith("8")
+                ? "62" + rawWa
+                : rawWa)
+          : null; // NULL if empty
+
+        // Use full_name from metadata, or fallback to email username
+        const fullName = meta?.full_name 
+          ? String(meta.full_name).slice(0, 120).trim()
+          : email.split('@')[0]; // Fallback to email username
+
+        console.log("[useEnsureProfile] Creating profile with:", {
+          id: user.id,
+          fullName,
+          email,
+          normalizedWa: normalizedWa || '(empty)',
+        });
+
+        // Insert profile - allow NULL whatsapp
         const { error: insertError } = await supabase.from("profiles").insert({
           id: user.id,
-          full_name: String(meta.full_name).slice(0, 120).trim(),
+          full_name: fullName,
           email: email.toLowerCase(),
-          whatsapp: normalizedWa,
+          whatsapp: normalizedWa, // Can be NULL
         });
 
         if (!isMounted) return;
