@@ -54,33 +54,74 @@ CREATE TRIGGER on_auth_user_created
 -- Step 3: Make whatsapp nullable to avoid unique constraint issues
 ALTER TABLE public.profiles ALTER COLUMN whatsapp DROP NOT NULL;
 
--- Step 4: Update empty whatsapp values to NULL
+-- Step 4: Drop the old constraint FIRST (before cleaning duplicates)
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_whatsapp_key;
+
+-- Step 5: Update empty whatsapp values to NULL
 UPDATE public.profiles SET whatsapp = NULL WHERE whatsapp = '';
 
--- Step 5: Add unique constraint that excludes NULL values
-DROP INDEX IF EXISTS profiles_whatsapp_key;
-CREATE UNIQUE INDEX profiles_whatsapp_unique_idx ON public.profiles (whatsapp) 
+-- Step 6: Handle duplicate whatsapp numbers
+-- Find duplicates and set all but the first one to NULL
+WITH duplicates AS (
+  SELECT whatsapp, array_agg(id ORDER BY created_at) as user_ids
+  FROM public.profiles
+  WHERE whatsapp IS NOT NULL AND whatsapp != ''
+  GROUP BY whatsapp
+  HAVING COUNT(*) > 1
+)
+UPDATE public.profiles
+SET whatsapp = NULL
+WHERE id IN (
+  SELECT unnest(user_ids[2:]) -- Keep first, nullify rest
+  FROM duplicates
+);
+
+-- Step 7: NOW create unique index (after cleanup)
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_whatsapp_unique_idx ON public.profiles (whatsapp) 
 WHERE whatsapp IS NOT NULL AND whatsapp != '';
 
 -- Step 6: Create profiles for existing users who don't have one
 -- This is the CRITICAL step that fixes users who registered before this fix
+-- Use ROW_NUMBER to handle duplicate whatsapp numbers
+WITH users_to_create AS (
+  SELECT 
+    u.id,
+    COALESCE(
+      NULLIF(trim(u.raw_user_meta_data->>'full_name'), ''),
+      split_part(u.email, '@', 1),
+      'User'
+    ) as full_name,
+    COALESCE(lower(u.email), '') as email,
+    CASE 
+      WHEN u.raw_user_meta_data ? 'whatsapp' AND trim(u.raw_user_meta_data->>'whatsapp') != '' 
+      THEN public.normalize_wa(u.raw_user_meta_data->>'whatsapp')
+      ELSE NULL
+    END as whatsapp,
+    -- Use ROW_NUMBER to detect duplicates
+    ROW_NUMBER() OVER (
+      PARTITION BY 
+        CASE 
+          WHEN u.raw_user_meta_data ? 'whatsapp' AND trim(u.raw_user_meta_data->>'whatsapp') != '' 
+          THEN public.normalize_wa(u.raw_user_meta_data->>'whatsapp')
+          ELSE NULL
+        END
+      ORDER BY u.created_at
+    ) as row_num
+  FROM auth.users u
+  LEFT JOIN public.profiles p ON p.id = u.id
+  WHERE p.id IS NULL -- Only users without profiles
+)
 INSERT INTO public.profiles (id, full_name, email, whatsapp)
 SELECT 
-  u.id,
-  COALESCE(
-    NULLIF(trim(u.raw_user_meta_data->>'full_name'), ''),
-    split_part(u.email, '@', 1),
-    'User'
-  ),
-  COALESCE(lower(u.email), ''),
+  id,
+  full_name,
+  email,
   CASE 
-    WHEN u.raw_user_meta_data ? 'whatsapp' AND trim(u.raw_user_meta_data->>'whatsapp') != '' 
-    THEN public.normalize_wa(u.raw_user_meta_data->>'whatsapp')
+    -- Keep whatsapp for first occurrence, NULL for duplicates
+    WHEN row_num = 1 THEN whatsapp
     ELSE NULL
-  END
-FROM auth.users u
-LEFT JOIN public.profiles p ON p.id = u.id
-WHERE p.id IS NULL -- Only users without profiles
+  END as whatsapp
+FROM users_to_create
 ON CONFLICT (id) DO NOTHING;
 
 COMMIT;

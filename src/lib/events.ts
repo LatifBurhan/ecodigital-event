@@ -125,9 +125,13 @@ export const adminRegistrationsQuery = (eventId: string) =>
     queryFn: async (): Promise<Registration[]> => {
       const { data, error } = await supabase
         .from("event_registrations")
-        .select("*")
+        .select(`
+          *,
+          certificates(id, certificate_url, issued_at),
+          certificate_queue(id, status, error_message)
+        `)
         .eq("event_id", eventId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false});
       if (error) throw error;
       return data ?? [];
     },

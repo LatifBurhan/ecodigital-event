@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Download, FileImage, Loader2, MessageCircle, Search, Trash2, UserCheck, X } from "lucide-react";
+import { ArrowLeft, Award, Check, Download, FileImage, Loader2, MessageCircle, RefreshCw, Search, Trash2, UserCheck, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -44,6 +44,8 @@ function Registrations() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | RegStatus>("all");
   const [toDelete, setToDelete] = useState<Registration | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [genProgress, setGenProgress] = useState<{ current: number; total: number } | null>(null);
 
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -55,6 +57,57 @@ function Registrations() {
   }, [regs.data, q, status]);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin"] });
+
+  // Helper to get certificate status
+  function getCertStatus(r: any): "ready" | "queued" | "error" | "not_attended" {
+    if (!r.checked_in_at) return "not_attended";
+    if (r.certificates && r.certificates.length > 0) return "ready";
+    if (r.certificate_queue && r.certificate_queue.length > 0) {
+      const queue = r.certificate_queue[0];
+      if (queue.status === "failed") return "error";
+      return "queued";
+    }
+    return "not_attended";
+  }
+
+  // Count certificates by status
+  const certStats = useMemo(() => {
+    const attended = (regs.data ?? []).filter(r => r.checked_in_at);
+    return {
+      ready: attended.filter(r => getCertStatus(r) === "ready").length,
+      queued: attended.filter(r => getCertStatus(r) === "queued").length,
+      error: attended.filter(r => getCertStatus(r) === "error").length,
+    };
+  }, [regs.data]);
+
+  // Bulk generate certificates
+  async function generateCertificates() {
+    setGenerating(true);
+    setGenProgress({ current: 0, total: certStats.queued });
+    
+    try {
+      const response = await fetch("/api/admin/generate-certificates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_id: id }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to generate certificates");
+      }
+
+      toast.success(result.message || `${result.processed} sertifikat berhasil di-generate!`);
+      refresh();
+    } catch (error) {
+      console.error("[Admin] Generate certificates error:", error);
+      toast.error(error instanceof Error ? error.message : "Gagal generate sertifikat");
+    } finally {
+      setGenerating(false);
+      setGenProgress(null);
+    }
+  }
 
   async function update(r: Registration, patch: Partial<Registration>, msg: string) {
     const { error } = await supabase.from("event_registrations").update(patch).eq("id", r.id);
@@ -107,6 +160,45 @@ function Registrations() {
         <Stat label="Sudah check-in" value={all.filter((r) => r.checked_in_at).length} />
       </div>
 
+      {/* Certificate Generation Section */}
+      {certStats.queued > 0 && (
+        <div className="surface-card flex flex-wrap items-center gap-4 p-5 border-2 border-primary/20">
+          <Award className="size-8 text-primary" />
+          <div className="flex-1">
+            <h3 className="font-semibold">Sertifikat Siap Di-generate</h3>
+            <p className="text-sm text-muted-foreground">
+              {certStats.queued} peserta yang sudah hadir belum mendapat sertifikat
+            </p>
+          </div>
+          <Button 
+            onClick={generateCertificates} 
+            disabled={generating}
+            className="rounded-xl"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Generating {genProgress ? `${genProgress.current}/${genProgress.total}` : "..."}
+              </>
+            ) : (
+              <>
+                <Award className="size-4" />
+                Generate Sertifikat ({certStats.queued})
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {certStats.ready > 0 && (
+        <div className="surface-card flex flex-wrap items-center gap-3 p-4 bg-mint/10 border border-mint/30">
+          <Check className="size-5 text-forest" />
+          <p className="text-sm font-medium">
+            ✅ {certStats.ready} sertifikat sudah tersedia untuk diunduh peserta
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-3">
         <div className="relative min-w-60 flex-1">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -124,6 +216,14 @@ function Registrations() {
         <div className="space-y-3">
           {rows.map((r) => {
             const st = REG_STATUS[r.status as RegStatus] ?? REG_STATUS.pending;
+            const certStatus = getCertStatus(r);
+            const certBadge = {
+              ready: { label: "✅ Sertif Ready", cls: "bg-mint/30 text-forest-deep border-mint" },
+              queued: { label: "⏳ Pending", cls: "bg-amber-100 text-amber-900 border-amber-300" },
+              error: { label: "❌ Error", cls: "bg-destructive/10 text-destructive border-destructive/30" },
+              not_attended: { label: "➖ Belum Hadir", cls: "bg-muted text-muted-foreground border-muted" },
+            }[certStatus];
+            
             return (
               <div key={r.id} className="surface-card flex flex-col gap-3 p-4 lg:flex-row lg:items-center">
                 <div className="min-w-0 flex-1">
@@ -131,6 +231,7 @@ function Registrations() {
                     <p className="font-semibold">{r.name}</p>
                     <span className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium", st.cls)}>{st.label}</span>
                     {r.checked_in_at && <span className="rounded-full bg-mint/30 px-2.5 py-0.5 text-xs font-medium text-forest-deep">Hadir</span>}
+                    {r.checked_in_at && <span className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium", certBadge.cls)}>{certBadge.label}</span>}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{r.email} · {r.whatsapp}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -140,6 +241,25 @@ function Registrations() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  {/* Certificate Download Button */}
+                  {certStatus === "ready" && (r as any).certificates?.[0]?.certificate_url && (
+                    <Button asChild size="sm" variant="outline" className="rounded-xl border-mint text-forest">
+                      <a href={(r as any).certificates[0].certificate_url} target="_blank" rel="noopener noreferrer">
+                        <Award className="size-4" /> Lihat Sertifikat
+                      </a>
+                    </Button>
+                  )}
+                  {/* Certificate Error - Show error message */}
+                  {certStatus === "error" && (r as any).certificate_queue?.[0]?.error_message && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="rounded-xl border-destructive text-destructive"
+                      onClick={() => toast.error((r as any).certificate_queue[0].error_message)}
+                    >
+                      <X className="size-4" /> Error Detail
+                    </Button>
+                  )}
                   {r.payment_proof_path && (
                     <Button size="sm" variant="outline" className="rounded-xl" onClick={() => openProof(r.payment_proof_path!).catch(() => toast.error("Gagal membuka bukti."))}>
                       <FileImage className="size-4" /> Bukti
