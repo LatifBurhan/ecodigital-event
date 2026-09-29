@@ -20,6 +20,9 @@ import { formatDateRange, rupiah, REG_STATUS, type RegStatus, type Registration 
 
 export const Route = createFileRoute("/admin/_auth/scan")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    eventId: typeof search.eventId === "string" ? search.eventId : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Scan Tiket — Admin ECO-DIGITAL EVENT KIT" },
@@ -32,6 +35,7 @@ export const Route = createFileRoute("/admin/_auth/scan")({
 type Found = Registration & { events: { title: string; start_date: string; end_date: string; location: string } | null };
 
 function ScanPage() {
+  const { eventId } = Route.useSearch();
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
   const [camOn, setCamOn] = useState(false);
@@ -40,7 +44,28 @@ function ScanPage() {
   const [busy, setBusy] = useState(false);
   const [found, setFound] = useState<Found | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [recentCheckIns, setRecentCheckIns] = useState<Found[]>([]);
   const lastCode = useRef<string>("");
+
+  // Load recent check-ins for the event
+  useEffect(() => {
+    if (!eventId) return;
+    
+    async function loadRecent() {
+      const { data } = await supabase
+        .from("event_registrations")
+        .select("*, events(title, start_date, end_date, location)")
+        .eq("event_id", eventId)
+        .eq("status", "approved")
+        .not("checked_in_at", "is", null)
+        .order("checked_in_at", { ascending: false })
+        .limit(10);
+      
+      if (data) setRecentCheckIns(data as Found[]);
+    }
+    
+    void loadRecent();
+  }, [eventId]);
 
   useEffect(() => {
     return () => {
@@ -84,11 +109,19 @@ function ScanPage() {
     setFound(null);
     // Kode tiket bisa berupa kode mentah atau URL halaman tiket yang disalin.
     const cleaned = code.includes("/tiket/") ? code.split("/tiket/").pop()!.split(/[?#]/)[0]! : code;
-    const { data, error } = await supabase
+    
+    let query = supabase
       .from("event_registrations")
       .select("*, events(title, start_date, end_date, location)")
-      .eq("ticket_code", cleaned)
-      .maybeSingle();
+      .eq("ticket_code", cleaned);
+    
+    // Filter by event if eventId is provided
+    if (eventId) {
+      query = query.eq("event_id", eventId);
+    }
+    
+    const { data, error } = await query.maybeSingle();
+    
     setBusy(false);
     if (error) {
       toast.error("Gagal memeriksa tiket: " + error.message);
@@ -114,7 +147,13 @@ function ScanPage() {
       return;
     }
     toast.success(`${found.name} berhasil check-in`);
-    setFound({ ...found, checked_in_at: new Date().toISOString() });
+    const updatedFound = { ...found, checked_in_at: new Date().toISOString() };
+    setFound(updatedFound);
+    
+    // Add to recent check-ins list if filtering by event
+    if (eventId) {
+      setRecentCheckIns((prev) => [updatedFound, ...prev.slice(0, 9)]);
+    }
   }
 
   function reset() {
@@ -243,6 +282,28 @@ function ScanPage() {
           <Button variant="ghost" onClick={reset} className="w-full rounded-xl">
             Scan tiket lain
           </Button>
+        </div>
+      )}
+
+      {eventId && recentCheckIns.length > 0 && (
+        <div className="surface-card space-y-4 p-6">
+          <h3 className="font-display text-lg font-bold">Check-in Terbaru</h3>
+          <div className="space-y-2">
+            {recentCheckIns.map((reg) => (
+              <div key={reg.id} className="flex items-center justify-between gap-3 rounded-lg bg-soft p-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{reg.name}</p>
+                  <p className="truncate text-sm text-muted-foreground">{reg.email}</p>
+                </div>
+                <div className="text-right text-xs text-muted-foreground">
+                  {reg.checked_in_at && new Date(reg.checked_in_at).toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

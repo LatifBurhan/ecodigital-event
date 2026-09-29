@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { generateUUID } from "./eco";
 
 export type EventRow = Tables<"events">;
 export type Registration = Tables<"event_registrations">;
@@ -28,7 +29,10 @@ export type RegStatus = keyof typeof REG_STATUS;
 // Format manual agar identik antara SSR (server) dan browser — Intl currency
 // id-ID menghasilkan spasi berbeda di dua environment dan memicu hydration mismatch.
 export const rupiah = (n: number) =>
-  "Rp" + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  "Rp" +
+  Math.round(n)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
 function d(s: string) {
   return new Date(s + "T00:00:00");
@@ -37,8 +41,18 @@ function d(s: string) {
 // Nama hari/bulan ditulis manual agar hasil SSR dan browser selalu sama persis.
 const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 const BULAN = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
 ];
 
 function fmt(dt: Date) {
@@ -121,17 +135,18 @@ export const adminRegistrationsQuery = (eventId: string) =>
 
 export async function uploadPoster(file: File) {
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${crypto.randomUUID()}.${ext}`;
+  const path = `${generateUUID()}.${ext}`;
   const { error } = await supabase.storage.from("event-posters").upload(path, file, {
     contentType: file.type,
   });
-  if (error) throw error;
-  // Signed URL berlaku 10 tahun agar poster bisa tampil publik dari bucket privat.
-  const { data, error: e2 } = await supabase.storage
-    .from("event-posters")
-    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-  if (e2 || !data) throw e2 ?? new Error("Gagal membuat URL poster");
-  return data.signedUrl;
+  if (error) {
+    console.error("[uploadPoster] Upload error:", error);
+    throw new Error(`Gagal upload poster: ${error.message}`);
+  }
+  // Karena bucket event-posters public, gunakan getPublicUrl
+  const { data } = supabase.storage.from("event-posters").getPublicUrl(path);
+  if (!data?.publicUrl) throw new Error("Gagal mendapatkan URL poster");
+  return data.publicUrl;
 }
 
 export async function openProof(path: string) {
@@ -146,7 +161,17 @@ function csvCell(value: string | number | null | undefined) {
 }
 
 export function exportRegistrationsCsv(event: EventRow, rows: Registration[]) {
-  const header = ["Tanggal Daftar", "Nama", "Email", "WhatsApp", "Status", "Metode Bayar", "Nominal", "Kode Tiket", "Check-in"];
+  const header = [
+    "Tanggal Daftar",
+    "Nama",
+    "Email",
+    "WhatsApp",
+    "Status",
+    "Metode Bayar",
+    "Nominal",
+    "Kode Tiket",
+    "Check-in",
+  ];
   const lines = [
     header.map(csvCell).join(","),
     ...rows.map((r) =>

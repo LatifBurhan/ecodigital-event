@@ -8,7 +8,7 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, CalendarDays, LogOut, Menu, ScanLine, X } from "lucide-react";
+import { LayoutDashboard, CalendarDays, LogOut, Menu, ScanLine, X, ClipboardList } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
@@ -38,6 +38,7 @@ const nav = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/events", label: "Kelola Event", icon: CalendarDays },
   { to: "/admin/scan", label: "Scan Tiket", icon: ScanLine },
+  { to: "/admin/attendance", label: "Daftar Hadir", icon: ClipboardList },
 ] as const;
 
 function AdminLayout() {
@@ -121,7 +122,7 @@ function AdminLayout() {
               {open ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
             <h1 className="font-display text-lg font-bold">
-              {pathname.includes("/events") ? "Kelola Event" : pathname.includes("/scan") ? "Scan Tiket" : "Dashboard"}
+              {pathname.includes("/events") ? "Kelola Event" : pathname.includes("/scan") ? "Scan Tiket" : pathname.includes("/attendance") ? "Daftar Hadir" : "Dashboard"}
             </h1>
           </div>
           <div className="flex items-center gap-3">

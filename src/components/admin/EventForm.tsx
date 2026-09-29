@@ -21,7 +21,16 @@ import {
   type SocialLink,
 } from "@/lib/events";
 
-type ErrKey = "title" | "startDate" | "endDate" | "location" | "mapsUrl" | "organizer" | "poster" | "price" | "payments";
+type ErrKey =
+  | "title"
+  | "startDate"
+  | "endDate"
+  | "location"
+  | "mapsUrl"
+  | "organizer"
+  | "poster"
+  | "price"
+  | "payments";
 
 export function EventForm({ initial }: { initial?: EventRow }) {
   const navigate = useNavigate();
@@ -53,9 +62,11 @@ export function EventForm({ initial }: { initial?: EventRow }) {
     if (title.trim().length < 3) e.title = "Nama event wajib diisi.";
     if (!startDate) e.startDate = "Tanggal mulai wajib diisi.";
     if (!endDate) e.endDate = "Tanggal selesai wajib diisi.";
-    if (startDate && endDate && endDate < startDate) e.endDate = "Tanggal selesai tidak boleh sebelum tanggal mulai.";
+    if (startDate && endDate && endDate < startDate)
+      e.endDate = "Tanggal selesai tidak boleh sebelum tanggal mulai.";
     if (!location.trim()) e.location = "Lokasi wajib diisi.";
-    if (!/^https?:\/\//.test(mapsUrl.trim())) e.mapsUrl = "Link Maps harus diawali http:// atau https://";
+    if (!/^https?:\/\//.test(mapsUrl.trim()))
+      e.mapsUrl = "Link Maps harus diawali http:// atau https://";
     if (!organizer.trim()) e.organizer = "Penyelenggara wajib diisi.";
     if (!posterFile && !posterUrl) e.poster = "Poster wajib diunggah.";
     if (posterFile && posterFile.size > 5 * 1024 * 1024) e.poster = "Ukuran poster maksimal 5 MB.";
@@ -86,13 +97,19 @@ export function EventForm({ initial }: { initial?: EventRow }) {
         description: description.trim() || null,
         lineup: lineup.map((s) => s.trim()).filter(Boolean),
         facilities: facilities.map((s) => s.trim()).filter(Boolean),
-        socials: socials.filter((s) => s.url.trim()).map((s) => ({ platform: s.platform, url: s.url.trim() })),
+        socials: socials
+          .filter((s) => s.url.trim())
+          .map((s) => ({ platform: s.platform, url: s.url.trim() })),
         is_paid: isPaid,
         price: isPaid ? Math.round(Number(price)) : 0,
         payment_methods: isPaid
           ? payments
               .filter((p) => p.name.trim() && p.account_number.trim())
-              .map((p) => ({ name: p.name.trim(), account_number: p.account_number.trim(), account_name: p.account_name.trim() }))
+              .map((p) => ({
+                name: p.name.trim(),
+                account_number: p.account_number.trim(),
+                account_name: p.account_name.trim(),
+              }))
           : [],
         is_published: published,
         registration_open: regOpen,
@@ -110,7 +127,9 @@ export function EventForm({ initial }: { initial?: EventRow }) {
       toast.success(initial ? "Event diperbarui." : "Event berhasil dibuat.");
       navigate({ to: "/admin/events" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal menyimpan event.");
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[EventForm] Gagal menyimpan:", err);
+      toast.error(`Gagal menyimpan event: ${msg}`);
     } finally {
       setSaving(false);
     }
@@ -130,9 +149,16 @@ export function EventForm({ initial }: { initial?: EventRow }) {
                   <ImagePlus className="size-8" /> Unggah poster
                 </>
               )}
-              <input type="file" accept="image/*" className="sr-only" onChange={(e) => setPosterFile(e.target.files?.[0] ?? null)} />
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => setPosterFile(e.target.files?.[0] ?? null)}
+              />
             </label>
-            {preview && <p className="mt-1 text-xs text-muted-foreground">Klik gambar untuk mengganti.</p>}
+            {preview && (
+              <p className="mt-1 text-xs text-muted-foreground">Klik gambar untuk mengganti.</p>
+            )}
             <Err msg={errors.poster} />
           </div>
           <div className="space-y-4">
@@ -141,31 +167,68 @@ export function EventForm({ initial }: { initial?: EventRow }) {
             </F>
             <div className="grid gap-4 sm:grid-cols-2">
               <F label="Tanggal mulai *" err={errors.startDate}>
-                <Input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); if (!endDate) setEndDate(e.target.value); }} />
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    if (!endDate) setEndDate(e.target.value);
+                  }}
+                />
               </F>
               <F label="Tanggal selesai *" err={errors.endDate}>
-                <Input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} />
+                <Input
+                  type="date"
+                  value={endDate}
+                  min={startDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
               </F>
             </div>
             <F label="Lokasi *" err={errors.location}>
-              <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Gedung Serbaguna Kampus, Yogyakarta" />
+              <Input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Gedung Serbaguna Kampus, Yogyakarta"
+              />
             </F>
             <F label="Link Google Maps *" err={errors.mapsUrl}>
-              <Input value={mapsUrl} onChange={(e) => setMapsUrl(e.target.value)} placeholder="https://maps.app.goo.gl/..." />
+              <Input
+                value={mapsUrl}
+                onChange={(e) => setMapsUrl(e.target.value)}
+                placeholder="https://maps.app.goo.gl/..."
+              />
             </F>
             <F label="Dibuat oleh *" err={errors.organizer}>
-              <Input value={organizer} onChange={(e) => setOrganizer(e.target.value)} placeholder="BEM Universitas Yogyakarta" />
+              <Input
+                value={organizer}
+                onChange={(e) => setOrganizer(e.target.value)}
+                placeholder="BEM Universitas Yogyakarta"
+              />
             </F>
           </div>
         </div>
       </Section>
 
-      <Section title="Detail tambahan" hint="Opsional — yang kosong tidak ditampilkan di halaman event">
+      <Section
+        title="Detail tambahan"
+        hint="Opsional — yang kosong tidak ditampilkan di halaman event"
+      >
         <F label="Deskripsi">
           <Textarea rows={8} value={description} onChange={(e) => setDescription(e.target.value)} />
         </F>
-        <ListInput label="Line up" placeholder="Nama band / pembicara" items={lineup} setItems={setLineup} />
-        <ListInput label="Fasilitas" placeholder="Contoh: Sertifikat, Snack" items={facilities} setItems={setFacilities} />
+        <ListInput
+          label="Line up"
+          placeholder="Nama band / pembicara"
+          items={lineup}
+          setItems={setLineup}
+        />
+        <ListInput
+          label="Fasilitas"
+          placeholder="Contoh: Sertifikat, Snack"
+          items={facilities}
+          setItems={setFacilities}
+        />
         <div>
           <Label className="mb-2 block">Media sosial</Label>
           <div className="space-y-2">
@@ -173,26 +236,51 @@ export function EventForm({ initial }: { initial?: EventRow }) {
               <div key={i} className="flex gap-2">
                 <select
                   value={s.platform}
-                  onChange={(e) => setSocials(socials.map((x, j) => (j === i ? { ...x, platform: e.target.value } : x)))}
+                  onChange={(e) =>
+                    setSocials(
+                      socials.map((x, j) => (j === i ? { ...x, platform: e.target.value } : x)),
+                    )
+                  }
                   className="h-10 rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  {SOCIAL_PLATFORMS.map((p) => <option key={p}>{p}</option>)}
+                  {SOCIAL_PLATFORMS.map((p) => (
+                    <option key={p}>{p}</option>
+                  ))}
                 </select>
-                <Input value={s.url} placeholder="https://..." onChange={(e) => setSocials(socials.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} />
+                <Input
+                  value={s.url}
+                  placeholder="https://..."
+                  onChange={(e) =>
+                    setSocials(socials.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))
+                  }
+                />
                 <RemoveBtn onClick={() => setSocials(socials.filter((_, j) => j !== i))} />
               </div>
             ))}
           </div>
-          <AddBtn onClick={() => setSocials([...socials, { platform: "Instagram", url: "" }])}>Tambah media sosial</AddBtn>
+          <AddBtn onClick={() => setSocials([...socials, { platform: "Instagram", url: "" }])}>
+            Tambah media sosial
+          </AddBtn>
         </div>
       </Section>
 
       <Section title="Tiket & pembayaran">
-        <Toggle label="Event berbayar" desc="Pendaftar wajib mengunggah bukti transfer dan disetujui admin." checked={isPaid} onChange={setIsPaid} />
+        <Toggle
+          label="Event berbayar"
+          desc="Pendaftar wajib mengunggah bukti transfer dan disetujui admin."
+          checked={isPaid}
+          onChange={setIsPaid}
+        />
         {isPaid && (
           <div className="space-y-4">
             <F label="Harga tiket (Rp) *" err={errors.price}>
-              <Input type="number" min={1} value={price} onChange={(e) => setPrice(e.target.value)} className="max-w-xs" />
+              <Input
+                type="number"
+                min={1}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="max-w-xs"
+              />
             </F>
             <div>
               <Label className="mb-2 block">Metode pembayaran *</Label>
@@ -203,15 +291,31 @@ export function EventForm({ initial }: { initial?: EventRow }) {
                       <Input
                         key={k}
                         value={p[k]}
-                        placeholder={k === "name" ? "Bank / e-wallet (BCA, DANA)" : k === "account_number" ? "No. rekening / HP" : "Atas nama"}
-                        onChange={(e) => setPayments(payments.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)))}
+                        placeholder={
+                          k === "name"
+                            ? "Bank / e-wallet (BCA, DANA)"
+                            : k === "account_number"
+                              ? "No. rekening / HP"
+                              : "Atas nama"
+                        }
+                        onChange={(e) =>
+                          setPayments(
+                            payments.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)),
+                          )
+                        }
                       />
                     ))}
                     <RemoveBtn onClick={() => setPayments(payments.filter((_, j) => j !== i))} />
                   </div>
                 ))}
               </div>
-              <AddBtn onClick={() => setPayments([...payments, { name: "", account_number: "", account_name: "" }])}>Tambah metode pembayaran</AddBtn>
+              <AddBtn
+                onClick={() =>
+                  setPayments([...payments, { name: "", account_number: "", account_name: "" }])
+                }
+              >
+                Tambah metode pembayaran
+              </AddBtn>
               <Err msg={errors.payments} />
             </div>
           </div>
@@ -219,12 +323,29 @@ export function EventForm({ initial }: { initial?: EventRow }) {
       </Section>
 
       <Section title="Pengaturan">
-        <Toggle label="Tampilkan di halaman depan" desc="Matikan untuk menyimpan sebagai draf." checked={published} onChange={setPublished} />
-        <Toggle label="Pendaftaran dibuka" desc="Matikan untuk menutup pendaftaran sementara." checked={regOpen} onChange={setRegOpen} />
+        <Toggle
+          label="Tampilkan di halaman depan"
+          desc="Matikan untuk menyimpan sebagai draf."
+          checked={published}
+          onChange={setPublished}
+        />
+        <Toggle
+          label="Pendaftaran dibuka"
+          desc="Matikan untuk menutup pendaftaran sementara."
+          checked={regOpen}
+          onChange={setRegOpen}
+        />
       </Section>
 
       <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" className="rounded-xl" onClick={() => navigate({ to: "/admin/events" })}>Batal</Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="rounded-xl"
+          onClick={() => navigate({ to: "/admin/events" })}
+        >
+          Batal
+        </Button>
         <Button type="submit" className="rounded-xl" disabled={saving}>
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
           {saving ? "Menyimpan..." : "Simpan event"}
@@ -234,7 +355,15 @@ export function EventForm({ initial }: { initial?: EventRow }) {
   );
 }
 
-function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+function Section({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="surface-card space-y-5 p-6">
       <div>
@@ -245,7 +374,15 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
     </section>
   );
 }
-function F({ label, err, children }: { label: string; err?: string | undefined; children: React.ReactNode }) {
+function F({
+  label,
+  err,
+  children,
+}: {
+  label: string;
+  err?: string | undefined;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <Label className="mb-1.5 block">{label}</Label>
@@ -257,7 +394,17 @@ function F({ label, err, children }: { label: string; err?: string | undefined; 
 function Err({ msg }: { msg?: string | undefined }) {
   return msg ? <p className="mt-1 text-xs text-destructive">{msg}</p> : null;
 }
-function Toggle({ label, desc, checked, onChange }: { label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  label,
+  desc,
+  checked,
+  onChange,
+}: {
+  label: string;
+  desc: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
     <label className="flex items-center justify-between gap-4">
       <span>
@@ -282,14 +429,28 @@ function RemoveBtn({ onClick }: { onClick: () => void }) {
     </Button>
   );
 }
-function ListInput({ label, placeholder, items, setItems }: { label: string; placeholder: string; items: string[]; setItems: (v: string[]) => void }) {
+function ListInput({
+  label,
+  placeholder,
+  items,
+  setItems,
+}: {
+  label: string;
+  placeholder: string;
+  items: string[];
+  setItems: (v: string[]) => void;
+}) {
   return (
     <div>
       <Label className="mb-2 block">{label}</Label>
       <div className="space-y-2">
         {items.map((v, i) => (
           <div key={i} className="flex gap-2">
-            <Input value={v} placeholder={placeholder} onChange={(e) => setItems(items.map((x, j) => (j === i ? e.target.value : x)))} />
+            <Input
+              value={v}
+              placeholder={placeholder}
+              onChange={(e) => setItems(items.map((x, j) => (j === i ? e.target.value : x)))}
+            />
             <RemoveBtn onClick={() => setItems(items.filter((_, j) => j !== i))} />
           </div>
         ))}

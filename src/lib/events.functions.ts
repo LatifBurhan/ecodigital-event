@@ -5,14 +5,20 @@ import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
 
 function publicClient() {
-  const url = process.env["SUPABASE_URL"]!;
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
+  const url = process.env["VITE_SUPABASE_URL"] || process.env["SUPABASE_URL"]!;
+  const key =
+    process.env["VITE_SUPABASE_ANON_KEY"] ||
+    process.env["SUPABASE_ANON_KEY"] ||
+    process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
+    process.env["SUPABASE_PUBLISHABLE_KEY"]!;
+
   return createClient<Database>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
       fetch: (input, init) => {
         const h = new Headers(init?.headers);
-        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) h.delete("Authorization");
+        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`)
+          h.delete("Authorization");
         h.set("apikey", key);
         return fetch(input, { ...init, headers: h });
       },
@@ -34,7 +40,7 @@ export const listPublicEvents = createServerFn({ method: "GET" }).handler(async 
 });
 
 export const getPublicEvent = createServerFn({ method: "GET" })
-  .inputValidator((d: unknown) => z.object({ slug: z.string().min(1).max(100) }).parse(d))
+  .validator((d: unknown) => z.object({ slug: z.string().min(1).max(100) }).parse(d))
   .handler(async ({ data }) => {
     const { data: row, error } = await publicClient()
       .from("events")
@@ -47,7 +53,7 @@ export const getPublicEvent = createServerFn({ method: "GET" })
   });
 
 export const getTicket = createServerFn({ method: "GET" })
-  .inputValidator((d: unknown) => z.object({ code: z.string().min(8).max(64) }).parse(d))
+  .validator((d: unknown) => z.object({ code: z.string().min(8).max(64) }).parse(d))
   .handler(async ({ data }) => {
     const { data: rows, error } = await publicClient().rpc("get_ticket", { _code: data.code });
     if (error) throw new Error(error.message);
@@ -59,8 +65,14 @@ export const publicEventsQuery = queryOptions({
   queryFn: () => listPublicEvents(),
 });
 export const publicEventQuery = (slug: string) =>
-  queryOptions({ queryKey: ["public", "event", slug], queryFn: () => getPublicEvent({ data: { slug } }) });
+  queryOptions({
+    queryKey: ["public", "event", slug],
+    queryFn: () => getPublicEvent({ data: { slug } }),
+  });
 export const ticketQuery = (code: string) =>
-  queryOptions({ queryKey: ["public", "ticket", code], queryFn: () => getTicket({ data: { code } }) });
+  queryOptions({
+    queryKey: ["public", "ticket", code],
+    queryFn: () => getTicket({ data: { code } }),
+  });
 
 export type PublicEvent = Awaited<ReturnType<typeof listPublicEvents>>[number];

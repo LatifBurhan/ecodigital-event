@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { ArrowLeft, CalendarDays, CheckCircle2, ExternalLink, Globe, MapPin, Music, Users } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckCircle2, ExternalLink, Globe, MapPin, Users } from "lucide-react";
 
 import { SiteNav } from "@/components/landing/SiteNav";
 import { SiteFooter } from "@/components/landing/SiteFooter";
@@ -111,8 +111,8 @@ function EventDetail() {
                 <h2 className="font-display text-xl font-bold">Line Up</h2>
                 <div className="mt-4 flex flex-wrap gap-3">
                   {ev.lineup.map((l) => (
-                    <span key={l} className="inline-flex items-center gap-2 rounded-2xl bg-forest px-4 py-2.5 text-sm font-semibold text-forest-foreground">
-                      <Music className="size-4 text-lime" /> {l}
+                    <span key={l} className="inline-flex items-center rounded-2xl bg-forest px-4 py-2.5 text-sm font-semibold text-forest-foreground">
+                      {l}
                     </span>
                   ))}
                 </div>

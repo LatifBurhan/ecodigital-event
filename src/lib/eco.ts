@@ -4,6 +4,22 @@ export const ASSUMPTIONS = {
   co2GramPerSheet: 5,
 };
 
+/** Generate UUID yang kompatibel dengan browser dan Node.js */
+export function generateUUID(): string {
+  // Browser modern yang support crypto.randomUUID
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  
+  // Fallback untuk browser yang tidak support randomUUID
+  // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export function calcImpact(participants: number, docsPerParticipant: number) {
   const sheets = Math.max(0, Math.round(participants * docsPerParticipant));
   const paperKg = (sheets * ASSUMPTIONS.gramPerSheet) / 1000;

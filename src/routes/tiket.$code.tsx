@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { CalendarDays, Clock, Loader2, MapPin, XCircle } from "lucide-react";
+import { CalendarDays, Clock, Loader2, MapPin, XCircle, Award } from "lucide-react";
 import { toast } from "sonner";
 
 import { SiteNav } from "@/components/landing/SiteNav";
@@ -77,6 +77,13 @@ function TicketPage() {
                   <p className="mt-1 text-sm text-muted-foreground">Bukti pembayaran tidak valid. Silakan hubungi penyelenggara.</p>
                 </div>
               )}
+
+              <Link to="/sertifikat/$code" params={{ code }} className="w-full">
+                <Button variant="default" className="w-full rounded-full">
+                  <Award className="size-4 mr-2" />
+                  Lihat Sertifikat Saya
+                </Button>
+              </Link>
 
               <Button
                 variant="secondary"

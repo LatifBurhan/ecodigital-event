@@ -10,13 +10,20 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAuthRouteImport } from './routes/admin._auth'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as EventsSlugRouteImport } from './routes/events.$slug'
+import { Route as SertifikatIndexRouteImport } from './routes/sertifikat.index'
+import { Route as SertifikatCodeRouteImport } from './routes/sertifikat.$code'
+import { Route as TiketIndexRouteImport } from './routes/tiket.index'
 import { Route as TiketCodeRouteImport } from './routes/tiket.$code'
 import { Route as AdminAuthDashboardRouteImport } from './routes/admin._auth.dashboard'
 import { Route as AdminAuthScanRouteImport } from './routes/admin._auth.scan'
+import { Route as AdminAuthAttendanceIndexRouteImport } from './routes/admin._auth.attendance.index'
+import { Route as AdminAuthAttendanceIdRouteImport } from './routes/admin._auth.attendance.$id'
 import { Route as AdminAuthEventsIndexRouteImport } from './routes/admin._auth.events.index'
 import { Route as AdminAuthEventsNewRouteImport } from './routes/admin._auth.events.new'
 import { Route as AdminAuthEventsIdIndexRouteImport } from './routes/admin._auth.events.$id.index'
@@ -25,6 +32,16 @@ import { Route as AdminAuthEventsIdEditRouteImport } from './routes/admin._auth.
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -47,6 +64,21 @@ const EventsSlugRoute = EventsSlugRouteImport.update({
   path: '/events/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SertifikatIndexRoute = SertifikatIndexRouteImport.update({
+  id: '/sertifikat/',
+  path: '/sertifikat/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SertifikatCodeRoute = SertifikatCodeRouteImport.update({
+  id: '/sertifikat/$code',
+  path: '/sertifikat/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TiketIndexRoute = TiketIndexRouteImport.update({
+  id: '/tiket/',
+  path: '/tiket/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TiketCodeRoute = TiketCodeRouteImport.update({
   id: '/tiket/$code',
   path: '/tiket/$code',
@@ -60,6 +92,17 @@ const AdminAuthDashboardRoute = AdminAuthDashboardRouteImport.update({
 const AdminAuthScanRoute = AdminAuthScanRouteImport.update({
   id: '/scan',
   path: '/scan',
+  getParentRoute: () => AdminAuthRoute,
+} as any)
+const AdminAuthAttendanceIndexRoute =
+  AdminAuthAttendanceIndexRouteImport.update({
+    id: '/attendance/',
+    path: '/attendance/',
+    getParentRoute: () => AdminAuthRoute,
+  } as any)
+const AdminAuthAttendanceIdRoute = AdminAuthAttendanceIdRouteImport.update({
+  id: '/attendance/$id',
+  path: '/attendance/$id',
   getParentRoute: () => AdminAuthRoute,
 } as any)
 const AdminAuthEventsIndexRoute = AdminAuthEventsIndexRouteImport.update({
@@ -85,27 +128,41 @@ const AdminAuthEventsIdEditRoute = AdminAuthEventsIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/admin': typeof AdminAuthRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/events/$slug': typeof EventsSlugRoute
+  '/sertifikat/$code': typeof SertifikatCodeRoute
   '/tiket/$code': typeof TiketCodeRoute
   '/admin/': typeof AdminIndexRoute
+  '/sertifikat/': typeof SertifikatIndexRoute
+  '/tiket/': typeof TiketIndexRoute
   '/admin/dashboard': typeof AdminAuthDashboardRoute
   '/admin/scan': typeof AdminAuthScanRoute
+  '/admin/attendance/$id': typeof AdminAuthAttendanceIdRoute
   '/admin/events/new': typeof AdminAuthEventsNewRoute
+  '/admin/attendance/': typeof AdminAuthAttendanceIndexRoute
   '/admin/events/': typeof AdminAuthEventsIndexRoute
   '/admin/events/$id/edit': typeof AdminAuthEventsIdEditRoute
   '/admin/events/$id/': typeof AdminAuthEventsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/admin': typeof AdminIndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/events/$slug': typeof EventsSlugRoute
+  '/sertifikat/$code': typeof SertifikatCodeRoute
   '/tiket/$code': typeof TiketCodeRoute
+  '/sertifikat': typeof SertifikatIndexRoute
+  '/tiket': typeof TiketIndexRoute
   '/admin/dashboard': typeof AdminAuthDashboardRoute
   '/admin/scan': typeof AdminAuthScanRoute
+  '/admin/attendance/$id': typeof AdminAuthAttendanceIdRoute
   '/admin/events/new': typeof AdminAuthEventsNewRoute
+  '/admin/attendance': typeof AdminAuthAttendanceIndexRoute
   '/admin/events': typeof AdminAuthEventsIndexRoute
   '/admin/events/$id/edit': typeof AdminAuthEventsIdEditRoute
   '/admin/events/$id': typeof AdminAuthEventsIdIndexRoute
@@ -113,14 +170,21 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/admin/_auth': typeof AdminAuthRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/events/$slug': typeof EventsSlugRoute
+  '/sertifikat/$code': typeof SertifikatCodeRoute
   '/tiket/$code': typeof TiketCodeRoute
   '/admin/': typeof AdminIndexRoute
+  '/sertifikat/': typeof SertifikatIndexRoute
+  '/tiket/': typeof TiketIndexRoute
   '/admin/_auth/dashboard': typeof AdminAuthDashboardRoute
   '/admin/_auth/scan': typeof AdminAuthScanRoute
+  '/admin/_auth/attendance/$id': typeof AdminAuthAttendanceIdRoute
   '/admin/_auth/events/new': typeof AdminAuthEventsNewRoute
+  '/admin/_auth/attendance/': typeof AdminAuthAttendanceIndexRoute
   '/admin/_auth/events/': typeof AdminAuthEventsIndexRoute
   '/admin/_auth/events/$id/edit': typeof AdminAuthEventsIdEditRoute
   '/admin/_auth/events/$id/': typeof AdminAuthEventsIdIndexRoute
@@ -129,41 +193,62 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
+    | '/register'
     | '/admin'
     | '/admin/login'
     | '/events/$slug'
+    | '/sertifikat/$code'
     | '/tiket/$code'
     | '/admin/'
+    | '/sertifikat/'
+    | '/tiket/'
     | '/admin/dashboard'
     | '/admin/scan'
+    | '/admin/attendance/$id'
     | '/admin/events/new'
+    | '/admin/attendance/'
     | '/admin/events/'
     | '/admin/events/$id/edit'
     | '/admin/events/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
+    | '/register'
     | '/admin'
     | '/admin/login'
     | '/events/$slug'
+    | '/sertifikat/$code'
     | '/tiket/$code'
+    | '/sertifikat'
+    | '/tiket'
     | '/admin/dashboard'
     | '/admin/scan'
+    | '/admin/attendance/$id'
     | '/admin/events/new'
+    | '/admin/attendance'
     | '/admin/events'
     | '/admin/events/$id/edit'
     | '/admin/events/$id'
   id:
     | '__root__'
     | '/'
+    | '/login'
+    | '/register'
     | '/admin/_auth'
     | '/admin/login'
     | '/events/$slug'
+    | '/sertifikat/$code'
     | '/tiket/$code'
     | '/admin/'
+    | '/sertifikat/'
+    | '/tiket/'
     | '/admin/_auth/dashboard'
     | '/admin/_auth/scan'
+    | '/admin/_auth/attendance/$id'
     | '/admin/_auth/events/new'
+    | '/admin/_auth/attendance/'
     | '/admin/_auth/events/'
     | '/admin/_auth/events/$id/edit'
     | '/admin/_auth/events/$id/'
@@ -171,11 +256,16 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
   AdminAuthRoute: typeof AdminAuthRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
   EventsSlugRoute: typeof EventsSlugRoute
+  SertifikatCodeRoute: typeof SertifikatCodeRoute
   TiketCodeRoute: typeof TiketCodeRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  SertifikatIndexRoute: typeof SertifikatIndexRoute
+  TiketIndexRoute: typeof TiketIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -185,6 +275,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -215,6 +319,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sertifikat/': {
+      id: '/sertifikat/'
+      path: '/sertifikat'
+      fullPath: '/sertifikat/'
+      preLoaderRoute: typeof SertifikatIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sertifikat/$code': {
+      id: '/sertifikat/$code'
+      path: '/sertifikat/$code'
+      fullPath: '/sertifikat/$code'
+      preLoaderRoute: typeof SertifikatCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tiket/': {
+      id: '/tiket/'
+      path: '/tiket'
+      fullPath: '/tiket/'
+      preLoaderRoute: typeof TiketIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tiket/$code': {
       id: '/tiket/$code'
       path: '/tiket/$code'
@@ -234,6 +359,20 @@ declare module '@tanstack/react-router' {
       path: '/scan'
       fullPath: '/admin/scan'
       preLoaderRoute: typeof AdminAuthScanRouteImport
+      parentRoute: typeof AdminAuthRoute
+    }
+    '/admin/_auth/attendance/': {
+      id: '/admin/_auth/attendance/'
+      path: '/attendance'
+      fullPath: '/admin/attendance/'
+      preLoaderRoute: typeof AdminAuthAttendanceIndexRouteImport
+      parentRoute: typeof AdminAuthRoute
+    }
+    '/admin/_auth/attendance/$id': {
+      id: '/admin/_auth/attendance/$id'
+      path: '/attendance/$id'
+      fullPath: '/admin/attendance/$id'
+      preLoaderRoute: typeof AdminAuthAttendanceIdRouteImport
       parentRoute: typeof AdminAuthRoute
     }
     '/admin/_auth/events/': {
@@ -270,7 +409,9 @@ declare module '@tanstack/react-router' {
 interface AdminAuthRouteChildren {
   AdminAuthDashboardRoute: typeof AdminAuthDashboardRoute
   AdminAuthScanRoute: typeof AdminAuthScanRoute
+  AdminAuthAttendanceIdRoute: typeof AdminAuthAttendanceIdRoute
   AdminAuthEventsNewRoute: typeof AdminAuthEventsNewRoute
+  AdminAuthAttendanceIndexRoute: typeof AdminAuthAttendanceIndexRoute
   AdminAuthEventsIndexRoute: typeof AdminAuthEventsIndexRoute
   AdminAuthEventsIdEditRoute: typeof AdminAuthEventsIdEditRoute
   AdminAuthEventsIdIndexRoute: typeof AdminAuthEventsIdIndexRoute
@@ -279,7 +420,9 @@ interface AdminAuthRouteChildren {
 const AdminAuthRouteChildren: AdminAuthRouteChildren = {
   AdminAuthDashboardRoute: AdminAuthDashboardRoute,
   AdminAuthScanRoute: AdminAuthScanRoute,
+  AdminAuthAttendanceIdRoute: AdminAuthAttendanceIdRoute,
   AdminAuthEventsNewRoute: AdminAuthEventsNewRoute,
+  AdminAuthAttendanceIndexRoute: AdminAuthAttendanceIndexRoute,
   AdminAuthEventsIndexRoute: AdminAuthEventsIndexRoute,
   AdminAuthEventsIdEditRoute: AdminAuthEventsIdEditRoute,
   AdminAuthEventsIdIndexRoute: AdminAuthEventsIdIndexRoute,
@@ -291,11 +434,16 @@ const AdminAuthRouteWithChildren = AdminAuthRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
   AdminAuthRoute: AdminAuthRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
   EventsSlugRoute: EventsSlugRoute,
+  SertifikatCodeRoute: SertifikatCodeRoute,
   TiketCodeRoute: TiketCodeRoute,
   AdminIndexRoute: AdminIndexRoute,
+  SertifikatIndexRoute: SertifikatIndexRoute,
+  TiketIndexRoute: TiketIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
