@@ -7,6 +7,7 @@ import { adminEventQuery } from "@/lib/events";
 import { formatDateID, nf } from "@/lib/eco";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import { generateCertificates as generateCertificatesServerFn } from "@/lib/generate-certificates";
 
 export const Route = createFileRoute("/admin/_auth/attendance/$id")({
   head: () => ({ 
@@ -34,6 +35,7 @@ function EventAttendance() {
   const qc = useQueryClient();
   const [generating, setGenerating] = useState(false);
   const [pendingCerts, setPendingCerts] = useState(0);
+  const [hasTemplate, setHasTemplate] = useState(false);
 
   console.log("[EventAttendance] Event ID:", id);
 
@@ -71,6 +73,21 @@ function EventAttendance() {
   const total = attendance.length;
   const attendanceRate = total > 0 ? Math.round((checkedIn.length / total) * 100) : 0;
 
+  // Check if event has certificate template
+  useEffect(() => {
+    async function checkTemplate() {
+      const { data } = await supabase
+        .from("certificate_templates")
+        .select("id")
+        .eq("event_id", id)
+        .single();
+      
+      setHasTemplate(!!data);
+    }
+
+    void checkTemplate();
+  }, [id]);
+
   // Count pending certificates
   useEffect(() => {
     if (checkedIn.length === 0) {
@@ -97,24 +114,28 @@ function EventAttendance() {
     setGenerating(true);
     
     try {
-      const response = await fetch("/api/admin/generate-certificates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event_id: id }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
+      console.log("[Attendance] Generating certificates for event:", id);
+      
+      // Call server function
+      const result = await generateCertificatesServerFn({ data: { eventId: id } });
+      
+      console.log("[Attendance] Generation result:", result);
+      
+      if (result.success) {
+        toast.success(result.message || `${result.processed} sertifikat berhasil di-generate!`);
+        setPendingCerts(0);
+        qc.invalidateQueries({ queryKey: ["admin", "attendance", id] });
+      } else {
         throw new Error(result.error || "Failed to generate certificates");
       }
-
-      toast.success(result.message || `${result.processed} sertifikat berhasil di-generate!`);
-      setPendingCerts(0);
-      qc.invalidateQueries({ queryKey: ["admin", "attendance", id] });
     } catch (error) {
       console.error("[Attendance] Generate certificates error:", error);
-      toast.error(error instanceof Error ? error.message : "Gagal generate sertifikat");
+      const errorMessage = error instanceof Error ? error.message : "Gagal generate sertifikat";
+      toast.error(errorMessage);
+      
+      if (error instanceof Error) {
+        console.error("[Attendance] Error stack:", error.stack);
+      }
     } finally {
       setGenerating(false);
     }
@@ -254,11 +275,12 @@ function EventAttendance() {
           </Link>
         </Button>
 
-        {pendingCerts > 0 && (
+        {hasTemplate && checkedIn.length > 0 && (
           <Button 
             onClick={generateCertificates} 
             disabled={generating}
             className="rounded-full"
+            variant={pendingCerts > 0 ? "default" : "outline"}
           >
             {generating ? (
               <>
@@ -268,10 +290,19 @@ function EventAttendance() {
             ) : (
               <>
                 <Award className="size-4 mr-2" />
-                Generate Sertifikat ({pendingCerts})
+                {pendingCerts > 0 
+                  ? `Generate Sertifikat (${pendingCerts} pending)` 
+                  : "Generate Sertifikat"}
               </>
             )}
           </Button>
+        )}
+
+        {!hasTemplate && checkedIn.length > 0 && (
+          <div className="rounded-full border border-dashed border-muted-foreground/50 px-4 py-2 text-sm text-muted-foreground">
+            <Award className="size-4 inline mr-2" />
+            Upload template sertifikat di event settings untuk enable generate
+          </div>
         )}
 
         <Button

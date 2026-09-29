@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { ImagePlus, Loader2, Plus, Save, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { CertificateUpload } from "@/components/admin/CertificateUpload";
 import {
   SOCIAL_PLATFORMS,
   asPayments,
@@ -43,6 +44,8 @@ export function EventForm({ initial }: { initial?: EventRow }) {
   const [organizer, setOrganizer] = useState(initial?.organizer ?? "");
   const [posterUrl, setPosterUrl] = useState(initial?.poster_url ?? "");
   const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
+  const [certificateUrl, setCertificateUrl] = useState<string>("");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [lineup, setLineup] = useState<string[]>(initial?.lineup ?? []);
   const [facilities, setFacilities] = useState<string[]>(initial?.facilities ?? []);
@@ -56,6 +59,41 @@ export function EventForm({ initial }: { initial?: EventRow }) {
   const [errors, setErrors] = useState<Partial<Record<ErrKey, string>>>({});
 
   const preview = posterFile ? URL.createObjectURL(posterFile) : posterUrl;
+
+  // Fetch existing certificate template when editing
+  useEffect(() => {
+    if (initial?.id) {
+      supabase
+        .from("certificate_templates")
+        .select("template_url")
+        .eq("event_id", initial.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.template_url) {
+            setCertificateUrl(data.template_url);
+          }
+        })
+        .catch((err) => {
+          console.log("[EventForm] No existing template found:", err);
+        });
+    }
+  }, [initial?.id]);
+
+  // Upload certificate template to storage
+  async function uploadCertificate(file: File, eventId: string): Promise<string> {
+    const ext = file.name.split(".").pop();
+    const filename = `certificate-template-${eventId}.${ext}`;
+    const filepath = `certificate-templates/${filename}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("certificate-templates")
+      .upload(filepath, file, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from("certificate-templates").getPublicUrl(filepath);
+    return data.publicUrl;
+  }
 
   function validate() {
     const e: Partial<Record<ErrKey, string>> = {};
@@ -114,14 +152,61 @@ export function EventForm({ initial }: { initial?: EventRow }) {
         is_published: published,
         registration_open: regOpen,
       };
+
+      let eventId: string;
+
       if (initial) {
         const { error } = await supabase.from("events").update(payload).eq("id", initial.id);
         if (error) throw error;
+        eventId = initial.id;
       } else {
         const slug = `${slugify(title)}-${Math.random().toString(36).slice(2, 7)}`;
-        const { error } = await supabase.from("events").insert({ ...payload, slug });
+        const { data, error } = await supabase
+          .from("events")
+          .insert({ ...payload, slug })
+          .select("id")
+          .single();
         if (error) throw error;
+        eventId = data.id;
       }
+
+      // Handle certificate template upload
+      if (certificateFile) {
+        const certificateTemplateUrl = await uploadCertificate(certificateFile, eventId);
+
+        // Check if certificate template already exists for this event
+        const { data: existingTemplate } = await supabase
+          .from("certificate_templates")
+          .select("id")
+          .eq("event_id", eventId)
+          .single();
+
+        if (existingTemplate) {
+          // Update existing template
+          const { error: templateError } = await supabase
+            .from("certificate_templates")
+            .update({
+              template_url: certificateTemplateUrl,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingTemplate.id);
+
+          if (templateError) throw templateError;
+        } else {
+          // Insert new template
+          const { error: templateError } = await supabase
+            .from("certificate_templates")
+            .insert({
+              event_id: eventId,
+              template_url: certificateTemplateUrl,
+            });
+
+          if (templateError) throw templateError;
+        }
+
+        toast.success("Template sertifikat berhasil diunggah.");
+      }
+
       await qc.invalidateQueries({ queryKey: ["admin"] });
       await qc.invalidateQueries({ queryKey: ["public"] });
       toast.success(initial ? "Event diperbarui." : "Event berhasil dibuat.");
@@ -262,6 +347,14 @@ export function EventForm({ initial }: { initial?: EventRow }) {
             Tambah media sosial
           </AddBtn>
         </div>
+      </Section>
+
+      <Section title="Template Sertifikat" hint="Opsional — upload template untuk generate sertifikat otomatis">
+        <CertificateUpload
+          file={certificateFile}
+          currentUrl={certificateUrl}
+          onFileChange={setCertificateFile}
+        />
       </Section>
 
       <Section title="Tiket & pembayaran">
