@@ -64,7 +64,7 @@ function Register() {
             : normalizedWa;
 
         // Tunggu sebentar untuk memberi waktu trigger database berjalan
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Cek apakah profil sudah ada (dari trigger)
         const { data: existingProfile } = await supabase
@@ -76,9 +76,9 @@ function Register() {
         if (!existingProfile) {
           console.log("[Register] Profil belum ada, membuat profil manual...");
           
-          // Retry sampai 3 kali dengan delay
+          // Retry sampai 5 kali dengan delay exponential backoff
           let profileCreated = false;
-          for (let attempt = 1; attempt <= 3; attempt++) {
+          for (let attempt = 1; attempt <= 5; attempt++) {
             const { error: profileError } = await supabase.from("profiles").insert({
               id: signUpData.user.id,
               full_name: name.trim().slice(0, 120),
@@ -92,19 +92,23 @@ function Register() {
               break;
             }
 
+            // Jika error duplicate, berarti profil sudah ada (race condition)
+            if (profileError.message.includes("duplicate") || profileError.message.includes("already exists")) {
+              console.log(`[Register] Profil sudah ada (race condition resolved)`);
+              profileCreated = true;
+              break;
+            }
+
             console.error(`[Register] Percobaan ke-${attempt} gagal:`, profileError);
             
-            // Jika bukan error unique constraint atau sudah percobaan terakhir, hentikan
-            if (!profileError.message.includes("duplicate") && attempt < 3) {
-              // Tunggu sebentar sebelum retry
-              await new Promise(resolve => setTimeout(resolve, 300 * attempt));
-            } else {
-              break;
+            // Exponential backoff: 500ms, 1s, 2s, 4s
+            if (attempt < 5) {
+              await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt - 1)));
             }
           }
 
           if (!profileCreated) {
-            // Cek lagi apakah profil sudah ada (mungkin dibuat oleh trigger atau retry lain)
+            // Cek lagi apakah profil sudah ada
             const { data: recheckProfile } = await supabase
               .from("profiles")
               .select("id")
@@ -112,8 +116,8 @@ function Register() {
               .maybeSingle();
             
             if (!recheckProfile) {
-              console.error("[Register] Gagal membuat profil setelah 3 percobaan");
-              toast.warning("Akun berhasil dibuat, tapi profil perlu dilengkapi saat login pertama.");
+              console.error("[Register] Gagal membuat profil setelah 5 percobaan");
+              throw new Error("Gagal membuat profil. Silakan coba lagi atau hubungi admin.");
             }
           }
         } else {

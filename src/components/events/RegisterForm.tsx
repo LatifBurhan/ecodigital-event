@@ -476,6 +476,7 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
               <input
                 id="payment-proof-input"
                 type="file"
+                accept="image/*"
                 className="sr-only"
                 onChange={handleFileChange}
                 disabled={compressing}
