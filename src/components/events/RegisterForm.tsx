@@ -26,6 +26,7 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
   const methods = asPayments(event.payment_methods);
   const [method, setMethod] = useState("");
   const [proof, setProof] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [compressing, setCompressing] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
@@ -38,7 +39,7 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
   const [manualName, setManualName] = useState("");
   const [manualWhatsapp, setManualWhatsapp] = useState("");
 
-  // Handler untuk file selection - versi sederhana untuk debugging
+  // Handler untuk file selection - dengan preview
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     
@@ -49,6 +50,7 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
     if (!file) {
       console.log('[RegisterForm] No file selected');
       setProof(null);
+      setPreviewUrl(null);
       return;
     }
 
@@ -62,10 +64,34 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
     // Reset error untuk proof
     setErrors((prev) => ({ ...prev, proof: undefined }));
     
-    // Langsung set file tanpa kompresi untuk testing
+    // Create preview URL for images
+    if (file.type.startsWith('image/')) {
+      // Revoke old preview URL to free memory
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      const newPreviewUrl = URL.createObjectURL(file);
+      setPreviewUrl(newPreviewUrl);
+    } else {
+      setPreviewUrl(null);
+    }
+    
+    // Set file
     setProof(file);
     toast.success(`File "${file.name}" berhasil dipilih`);
+    
+    // Reset input value so same file can be selected again
+    e.target.value = '';
   };
+
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   useEffect(() => {
     // Only check for existing ticket after profile is confirmed to exist
@@ -371,6 +397,13 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
       } catch {
         /* abaikan */
       }
+      
+      // Cleanup preview URL
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      
       toast.success("Pendaftaran berhasil!");
       navigate({ to: "/tiket/$code", params: { code: data } });
     } catch (err) {
@@ -445,20 +478,32 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                     <span className="text-sm font-medium">Memproses...</span>
                   </div>
                 ) : proof ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="rounded-full bg-primary/10 p-3">
-                      <svg className="size-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                  <div className="flex flex-col items-center gap-3 w-full">
+                    {/* Preview gambar jika ada */}
+                    {previewUrl && (
+                      <div className="relative w-full max-w-xs rounded-lg overflow-hidden border-2 border-primary">
+                        <img 
+                          src={previewUrl} 
+                          alt="Preview bukti pembayaran" 
+                          className="w-full h-auto object-contain max-h-48"
+                        />
+                      </div>
+                    )}
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="rounded-full bg-primary/10 p-3">
+                        <svg className="size-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-primary">File terpilih</p>
+                        <p className="mt-1 text-xs text-muted-foreground truncate max-w-[200px]">{proof.name}</p>
+                        <p className="mt-1 text-xs font-mono text-muted-foreground">
+                          {(proof.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Tap untuk ganti</p>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-primary">File terpilih</p>
-                      <p className="mt-1 text-xs text-muted-foreground truncate max-w-[200px]">{proof.name}</p>
-                      <p className="mt-1 text-xs font-mono text-muted-foreground">
-                        {(proof.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Tap untuk ganti</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-2">

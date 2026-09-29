@@ -25,12 +25,15 @@ export function useEnsureProfile(user: User | null) {
       setIsChecking(true);
 
       try {
-        // Check if profile exists with retry
+        // Wait longer for database trigger to complete (same as register.tsx)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Check if profile exists with more retries
         let existingProfile = null;
         let fetchError = null;
         
-        // Retry up to 2 times with delay
-        for (let attempt = 0; attempt < 2; attempt++) {
+        // Retry up to 5 times with exponential backoff
+        for (let attempt = 0; attempt < 5; attempt++) {
           const result = await supabase
             .from("profiles")
             .select("id")
@@ -42,9 +45,9 @@ export function useEnsureProfile(user: User | null) {
           
           if (existingProfile || !fetchError) break;
           
-          // Wait before retry
-          if (attempt < 1) {
-            await new Promise(resolve => setTimeout(resolve, 300));
+          // Exponential backoff: 500ms, 1s, 2s, 4s
+          if (attempt < 4) {
+            await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt)));
           }
         }
 
