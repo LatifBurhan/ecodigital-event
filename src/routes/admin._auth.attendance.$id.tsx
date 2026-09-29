@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, ScanLine, Users, UserCheck, Download } from "lucide-react";
+import { ArrowLeft, Award, Loader2, ScanLine, Users, UserCheck, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { adminEventQuery } from "@/lib/events";
 import { formatDateID, nf } from "@/lib/eco";
+import { toast } from "sonner";
+import { useState, useEffect } from "react";
 
 export const Route = createFileRoute("/admin/_auth/attendance/$id")({
   head: () => ({ 
@@ -30,6 +32,8 @@ interface AttendanceRecord {
 function EventAttendance() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+  const [generating, setGenerating] = useState(false);
+  const [pendingCerts, setPendingCerts] = useState(0);
 
   console.log("[EventAttendance] Event ID:", id);
 
@@ -66,6 +70,55 @@ function EventAttendance() {
   const notCheckedIn = attendance.filter((a) => !a.checked_in_at);
   const total = attendance.length;
   const attendanceRate = total > 0 ? Math.round((checkedIn.length / total) * 100) : 0;
+
+  // Count pending certificates
+  useEffect(() => {
+    if (checkedIn.length === 0) {
+      setPendingCerts(0);
+      return;
+    }
+
+    async function countPending() {
+      const regIds = checkedIn.map(r => r.id);
+      const { data: certs } = await supabase
+        .from("certificates")
+        .select("registration_id")
+        .in("registration_id", regIds);
+      
+      const certsMap = new Set((certs || []).map(c => c.registration_id));
+      const pending = checkedIn.filter(r => !certsMap.has(r.id)).length;
+      setPendingCerts(pending);
+    }
+
+    void countPending();
+  }, [checkedIn.length]);
+
+  async function generateCertificates() {
+    setGenerating(true);
+    
+    try {
+      const response = await fetch("/api/admin/generate-certificates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_id: id }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to generate certificates");
+      }
+
+      toast.success(result.message || `${result.processed} sertifikat berhasil di-generate!`);
+      setPendingCerts(0);
+      qc.invalidateQueries({ queryKey: ["admin", "attendance", id] });
+    } catch (error) {
+      console.error("[Attendance] Generate certificates error:", error);
+      toast.error(error instanceof Error ? error.message : "Gagal generate sertifikat");
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   function exportCsv() {
     if (!event || !attendance.length) return;
@@ -200,6 +253,26 @@ function EventAttendance() {
             <ScanLine className="size-4 mr-2" /> Scan QR Tiket
           </Link>
         </Button>
+
+        {pendingCerts > 0 && (
+          <Button 
+            onClick={generateCertificates} 
+            disabled={generating}
+            className="rounded-full"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="size-4 animate-spin mr-2" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Award className="size-4 mr-2" />
+                Generate Sertifikat ({pendingCerts})
+              </>
+            )}
+          </Button>
+        )}
 
         <Button
           variant="outline"

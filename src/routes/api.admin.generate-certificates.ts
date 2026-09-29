@@ -29,11 +29,11 @@ export async function POST({ request }: APIEvent) {
             certificate_templates(
               id,
               template_url,
-              name_x,
-              name_y,
+              name_position_x,
+              name_position_y,
               name_font_size,
-              cert_number_x,
-              cert_number_y,
+              cert_number_position_x,
+              cert_number_position_y,
               cert_number_font_size
             )
           )
@@ -98,9 +98,9 @@ export async function POST({ request }: APIEvent) {
           event_title: event.title,
           ticket_code: registration.ticket_code,
           template_url: template.template_url,
-          name_position: { x: template.name_x, y: template.name_y },
+          name_position: { x: template.name_position_x, y: template.name_position_y },
           name_font_size: template.name_font_size,
-          cert_number_position: { x: template.cert_number_x, y: template.cert_number_y },
+          cert_number_position: { x: template.cert_number_position_x, y: template.cert_number_position_y },
           cert_number_font_size: template.cert_number_font_size,
         });
 
