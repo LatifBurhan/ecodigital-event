@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import QrScanner from "qr-scanner";
 import {
+  Award,
   BadgeCheck,
   Camera,
   CameraOff,
@@ -46,6 +47,8 @@ function ScanPage() {
   const [notFound, setNotFound] = useState(false);
   const [recentCheckIns, setRecentCheckIns] = useState<Found[]>([]);
   const lastCode = useRef<string>("");
+  const [generating, setGenerating] = useState(false);
+  const [pendingCerts, setPendingCerts] = useState(0);
 
   // Load recent check-ins for the event
   useEffect(() => {
@@ -62,10 +65,23 @@ function ScanPage() {
         .limit(10);
       
       if (data) setRecentCheckIns(data as Found[]);
+      
+      // Count pending certificates
+      if (data && data.length > 0) {
+        const regIds = data.map(r => r.id);
+        const { data: certs } = await supabase
+          .from("certificates")
+          .select("registration_id")
+          .in("registration_id", regIds);
+        
+        const certsMap = new Set((certs || []).map(c => c.registration_id));
+        const pending = data.filter(r => !certsMap.has(r.id)).length;
+        setPendingCerts(pending);
+      }
     }
     
     void loadRecent();
-  }, [eventId]);
+  }, [eventId, recentCheckIns.length]); // Refresh when check-ins change
 
   useEffect(() => {
     return () => {
@@ -163,15 +179,80 @@ function ScanPage() {
     lastCode.current = "";
   }
 
+  async function generateCertificates() {
+    if (!eventId) {
+      toast.error("Event ID tidak ditemukan");
+      return;
+    }
+
+    setGenerating(true);
+    
+    try {
+      const response = await fetch("/api/admin/generate-certificates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_id: eventId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to generate certificates");
+      }
+
+      toast.success(result.message || `${result.processed} sertifikat berhasil di-generate!`);
+      setPendingCerts(0); // Reset count
+      
+      // Refresh recent check-ins to update status
+      const { data } = await supabase
+        .from("event_registrations")
+        .select("*, events(title, start_date, end_date, location)")
+        .eq("event_id", eventId)
+        .eq("status", "approved")
+        .not("checked_in_at", "is", null)
+        .order("checked_in_at", { ascending: false })
+        .limit(10);
+      
+      if (data) setRecentCheckIns(data as Found[]);
+    } catch (error) {
+      console.error("[Scan] Generate certificates error:", error);
+      toast.error(error instanceof Error ? error.message : "Gagal generate sertifikat");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   const status = found ? REG_STATUS[found.status as RegStatus] : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h2 className="font-display text-2xl font-bold">Scan Tiket</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Arahkan kamera ke QR tiket peserta, atau masukkan kode tiket secara manual.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl font-bold">Scan Tiket</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Arahkan kamera ke QR tiket peserta, atau masukkan kode tiket secara manual.
+          </p>
+        </div>
+        {eventId && pendingCerts > 0 && (
+          <Button 
+            onClick={generateCertificates} 
+            disabled={generating}
+            className="rounded-xl"
+            size="sm"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Award className="size-4" />
+                Generate Sertifikat ({pendingCerts})
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       <div className="surface-card overflow-hidden">
