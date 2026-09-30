@@ -40,7 +40,7 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
   const [manualWhatsapp, setManualWhatsapp] = useState("");
 
   // Handler untuk file selection - dengan preview
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     
     console.log('[RegisterForm] onChange triggered');
@@ -64,20 +64,52 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
     // Reset error untuk proof
     setErrors((prev) => ({ ...prev, proof: undefined }));
     
-    // Create preview URL for images
-    if (file.type.startsWith('image/')) {
-      // Revoke old preview URL to free memory
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-      const newPreviewUrl = URL.createObjectURL(file);
-      setPreviewUrl(newPreviewUrl);
-    } else {
+    // Revoke old preview URL to free memory
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
     }
     
-    // Set file
+    // Set file immediately
     setProof(file);
+    
+    // Try to create preview - with better error handling and fallback
+    try {
+      // Check if it's an image by file extension as fallback
+      const isImageByName = /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(file.name);
+      const isImageByType = file.type.startsWith('image/');
+      
+      if (isImageByType || isImageByName) {
+        // Try URL.createObjectURL first
+        try {
+          const newPreviewUrl = URL.createObjectURL(file);
+          setPreviewUrl(newPreviewUrl);
+          console.log('[RegisterForm] Preview created with URL.createObjectURL');
+        } catch (urlError) {
+          console.warn('[RegisterForm] URL.createObjectURL failed, trying FileReader:', urlError);
+          
+          // Fallback to FileReader for better mobile compatibility
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            if (event.target?.result) {
+              setPreviewUrl(event.target.result as string);
+              console.log('[RegisterForm] Preview created with FileReader');
+            }
+          };
+          reader.onerror = (error) => {
+            console.error('[RegisterForm] FileReader error:', error);
+            // Don't set preview, but file is still set
+          };
+          reader.readAsDataURL(file);
+        }
+      } else {
+        console.log('[RegisterForm] Not an image file, skipping preview');
+      }
+    } catch (err) {
+      console.error('[RegisterForm] Error creating preview:', err);
+      // Don't fail, just skip preview
+    }
+    
     toast.success(`File "${file.name}" berhasil dipilih`);
     
     // Reset input value so same file can be selected again
@@ -479,6 +511,13 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                   </div>
                 ) : proof ? (
                   <div className="flex flex-col items-center gap-3 w-full">
+                    {/* Show checkmark icon always when file selected */}
+                    <div className="rounded-full bg-primary/10 p-3">
+                      <svg className="size-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    
                     {/* Preview gambar jika ada */}
                     {previewUrl && (
                       <div className="relative w-full max-w-xs rounded-lg overflow-hidden border-2 border-primary">
@@ -486,23 +525,30 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                           src={previewUrl} 
                           alt="Preview bukti pembayaran" 
                           className="w-full h-auto object-contain max-h-48"
+                          onError={(e) => {
+                            console.error('[RegisterForm] Image preview failed to load');
+                            // Hide image on error but keep file info visible
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                       </div>
                     )}
+                    
+                    {/* File info - always show */}
                     <div className="flex flex-col items-center gap-2">
-                      <div className="rounded-full bg-primary/10 p-3">
-                        <svg className="size-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
                       <div>
-                        <p className="text-sm font-semibold text-primary">File terpilih</p>
-                        <p className="mt-1 text-xs text-muted-foreground truncate max-w-[200px]">{proof.name}</p>
+                        <p className="text-sm font-semibold text-primary">✓ File terpilih</p>
+                        <p className="mt-1 text-xs text-muted-foreground break-all max-w-[250px] px-2">{proof.name}</p>
                         <p className="mt-1 text-xs font-mono text-muted-foreground">
                           {(proof.size / 1024 / 1024).toFixed(2)} MB
                         </p>
+                        {proof.type && (
+                          <p className="mt-0.5 text-xs text-muted-foreground opacity-70">
+                            {proof.type}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground">Tap untuk ganti</p>
+                      <p className="text-xs text-primary font-medium mt-2">Tap untuk ganti foto</p>
                     </div>
                   </div>
                 ) : (
