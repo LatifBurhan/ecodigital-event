@@ -29,6 +29,12 @@ interface AttendanceRecord {
   status: string;
   checked_in_at: string | null;
   created_at: string;
+  certificates?: Array<{
+    id: string;
+    certificate_url: string | null;
+    status: string;
+    generated_at: string | null;
+  }> | null;
 }
 
 function EventAttendance() {
@@ -53,18 +59,52 @@ function EventAttendance() {
   const attendanceQuery = useQuery({
     queryKey: ["admin", "attendance", id],
     queryFn: async (): Promise<AttendanceRecord[]> => {
-      const { data, error } = await supabase
+      // First, get all registrations
+      const { data: registrations, error: regError } = await supabase
         .from("event_registrations")
         .select("id, ticket_code, name, email, whatsapp, status, checked_in_at, created_at")
         .eq("event_id", id)
         .eq("status", "approved")
         .order("checked_in_at", { ascending: false, nullsFirst: false });
 
-      if (error) {
-        console.error("[Attendance] Error loading registrations:", error);
-        throw error;
+      if (regError) {
+        console.error("[Attendance] Error loading registrations:", regError);
+        throw regError;
       }
-      return data || [];
+
+      if (!registrations || registrations.length === 0) {
+        return [];
+      }
+
+      // Then, get certificates for these registrations
+      const registrationIds = registrations.map(r => r.id);
+      const { data: certificates, error: certError } = await supabase
+        .from("certificates")
+        .select("id, registration_id, certificate_url, status, generated_at")
+        .in("registration_id", registrationIds);
+
+      if (certError) {
+        console.error("[Attendance] Error loading certificates:", certError);
+        // Don't throw, just continue without certificates
+      }
+
+      // Map certificates to registrations
+      const certMap = new Map(
+        (certificates || []).map(cert => [cert.registration_id, cert])
+      );
+
+      const result = registrations.map(reg => ({
+        ...reg,
+        certificates: certMap.has(reg.id) ? [certMap.get(reg.id)!] : null,
+      }));
+
+      console.log("[Attendance] Loaded data:", {
+        registrations: registrations.length,
+        certificates: certificates?.length || 0,
+        withCerts: result.filter(r => r.certificates).length,
+      });
+
+      return result;
     },
   });
 
@@ -90,27 +130,21 @@ function EventAttendance() {
     void checkTemplate();
   }, [id]);
 
-  // Count pending certificates
+  // Count pending certificates - now using certificates relation
   useEffect(() => {
     if (checkedIn.length === 0) {
       setPendingCerts(0);
       return;
     }
 
-    async function countPending() {
-      const regIds = checkedIn.map(r => r.id);
-      const { data: certs } = await supabase
-        .from("certificates")
-        .select("registration_id")
-        .in("registration_id", regIds);
-      
-      const certsMap = new Set((certs || []).map(c => c.registration_id));
-      const pending = checkedIn.filter(r => !certsMap.has(r.id)).length;
-      setPendingCerts(pending);
-    }
-
-    void countPending();
-  }, [checkedIn.length]);
+    // Count participants without generated certificates
+    const pending = checkedIn.filter(r => {
+      const cert = r.certificates?.[0];
+      return !cert || cert.status !== 'generated' || !cert.certificate_url;
+    }).length;
+    
+    setPendingCerts(pending);
+  }, [checkedIn]);
 
   async function generateCertificates() {
     setGenerating(true);
@@ -367,24 +401,59 @@ function EventAttendance() {
                   <th className="px-4 py-3 text-left font-medium">Email</th>
                   <th className="px-4 py-3 text-left font-medium">WhatsApp</th>
                   <th className="px-4 py-3 text-left font-medium">Waktu Check-in</th>
+                  <th className="px-4 py-3 text-left font-medium">Status Sertifikat</th>
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {checkedIn.map((record, index) => (
-                  <tr key={record.id} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3">{index + 1}</td>
-                    <td className="px-4 py-3 font-medium">{record.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{record.email}</td>
-                    <td className="px-4 py-3 text-muted-foreground font-mono text-xs">
-                      {record.whatsapp}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {record.checked_in_at
-                        ? formatDateID(record.checked_in_at)
-                        : "-"}
-                    </td>
-                  </tr>
-                ))}
+                {checkedIn.map((record, index) => {
+                  const certificate = record.certificates?.[0];
+                  const hasCertificate = certificate?.status === 'generated' && certificate?.certificate_url;
+                  
+                  return (
+                    <tr key={record.id} className="border-b border-border last:border-0">
+                      <td className="px-4 py-3">{index + 1}</td>
+                      <td className="px-4 py-3 font-medium">{record.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{record.email}</td>
+                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">
+                        {record.whatsapp}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {record.checked_in_at
+                          ? formatDateID(record.checked_in_at)
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {hasCertificate ? (
+                          <a
+                            href={certificate.certificate_url!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                          >
+                            <Award className="size-3" />
+                            Lihat Sertifikat
+                          </a>
+                        ) : certificate?.status === 'processing' ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                            <Loader2 className="size-3 animate-spin" />
+                            Sedang diproses...
+                          </span>
+                        ) : certificate?.status === 'failed' ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-destructive">
+                            <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Gagal generate
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            Belum tersedia
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
