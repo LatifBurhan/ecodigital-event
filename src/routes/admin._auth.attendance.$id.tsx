@@ -8,6 +8,7 @@ import { formatDateID, nf } from "@/lib/eco";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { generateCertificates as generateCertificatesServerFn } from "@/lib/generate-certificates";
+import { processClientSideCertificates } from "@/lib/certificate-client-generator";
 
 export const Route = createFileRoute("/admin/_auth/attendance/$id")({
   head: () => ({ 
@@ -34,6 +35,7 @@ function EventAttendance() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const [generating, setGenerating] = useState(false);
+  const [generatingProgress, setGeneratingProgress] = useState({ current: 0, total: 0, name: '' });
   const [pendingCerts, setPendingCerts] = useState(0);
   const [hasTemplate, setHasTemplate] = useState(false);
 
@@ -112,22 +114,45 @@ function EventAttendance() {
 
   async function generateCertificates() {
     setGenerating(true);
+    setGeneratingProgress({ current: 0, total: 0, name: '' });
     
     try {
-      console.log("[Attendance] Generating certificates for event:", id);
+      console.log("[Attendance] Fetching pending certificates for event:", id);
       
-      // Call server function
+      // Get pending jobs from server
       const result = await generateCertificatesServerFn({ data: { eventId: id } });
       
-      console.log("[Attendance] Generation result:", result);
+      console.log("[Attendance] Server result:", result);
       
-      if (result.success) {
-        toast.success(result.message || `${result.processed} sertifikat berhasil di-generate!`);
-        setPendingCerts(0);
-        qc.invalidateQueries({ queryKey: ["admin", "attendance", id] });
-      } else {
-        throw new Error(result.error || "Failed to generate certificates");
+      if (!result.success || !result.pending || result.pending.length === 0) {
+        toast.info(result.message || 'Tidak ada sertifikat yang perlu di-generate');
+        setGenerating(false);
+        return;
       }
+      
+      // Process certificates client-side
+      toast.loading(`Generating ${result.pending.length} sertifikat...`);
+      
+      const processResult = await processClientSideCertificates(
+        result.pending,
+        (current, total, name) => {
+          setGeneratingProgress({ current, total, name });
+        }
+      );
+      
+      console.log("[Attendance] Process result:", processResult);
+      
+      if (processResult.processed > 0) {
+        toast.success(`${processResult.processed} sertifikat berhasil di-generate!`);
+      }
+      
+      if (processResult.failed > 0) {
+        toast.error(`${processResult.failed} sertifikat gagal di-generate`);
+        console.error("[Attendance] Errors:", processResult.errors);
+      }
+      
+      setPendingCerts(0);
+      qc.invalidateQueries({ queryKey: ["admin", "attendance", id] });
     } catch (error) {
       console.error("[Attendance] Generate certificates error:", error);
       const errorMessage = error instanceof Error ? error.message : "Gagal generate sertifikat";
@@ -138,6 +163,7 @@ function EventAttendance() {
       }
     } finally {
       setGenerating(false);
+      setGeneratingProgress({ current: 0, total: 0, name: '' });
     }
   }
 
@@ -285,7 +311,9 @@ function EventAttendance() {
             {generating ? (
               <>
                 <Loader2 className="size-4 animate-spin mr-2" />
-                Generating...
+                {generatingProgress.total > 0 
+                  ? `Generating ${generatingProgress.current}/${generatingProgress.total}...`
+                  : 'Generating...'}
               </>
             ) : (
               <>
