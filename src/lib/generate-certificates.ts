@@ -1,17 +1,40 @@
 import { createServerFn } from '@tanstack/react-start';
-import { processPendingCertificates } from './certificate-processor.server';
 
 /**
  * Server function to generate certificates
- * Called from admin UI button
+ * Calls Supabase Edge Function which supports canvas operations
  */
 export const generateCertificates = createServerFn({ method: 'POST' })
   .validator((data: { eventId?: string }) => data)
   .handler(async ({ data }) => {
     try {
-      console.log('[GenerateCertificates] Called with eventId:', data.eventId);
+      console.log('[GenerateCertificates] Calling Edge Function with eventId:', data.eventId);
       
-      const result = await processPendingCertificates(data.eventId);
+      // Get Supabase URL and anon key from environment
+      const supabaseUrl = process.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Supabase configuration missing');
+      }
+      
+      // Call Edge Function
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-certificates`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+        },
+        body: JSON.stringify({ eventId: data.eventId }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[GenerateCertificates] Edge Function error:', errorText);
+        throw new Error(`Edge Function failed: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
       
       console.log('[GenerateCertificates] Result:', result);
       
