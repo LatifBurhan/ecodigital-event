@@ -12,6 +12,7 @@ export const generateCertificates = createServerFn({ method: 'POST' })
       console.log('[GenerateCertificates] Fetching pending certificates for eventId:', data.eventId);
       
       // Get pending certificate jobs
+      // ONLY include jobs where certificate is NOT already generated
       let query = supabaseAdmin
         .from('certificate_queue')
         .select(`
@@ -23,6 +24,10 @@ export const generateCertificates = createServerFn({ method: 'POST' })
             name,
             email,
             event_id
+          ),
+          certificates!certificate_queue_registration_id_fkey(
+            status,
+            certificate_url
           )
         `)
         .eq('status', 'pending')
@@ -32,7 +37,25 @@ export const generateCertificates = createServerFn({ method: 'POST' })
         query = query.eq('event_id', data.eventId);
       }
 
-      const { data: pendingJobs, error: queueError } = await query;
+      const { data: allPendingJobs, error: queueError } = await query;
+
+      if (queueError) {
+        console.error('[GenerateCertificates] Queue fetch error:', queueError);
+        throw new Error(`Failed to fetch pending jobs: ${queueError.message}`);
+      }
+
+      // Filter out jobs that already have generated certificates
+      const pendingJobs = (allPendingJobs || []).filter((job: any) => {
+        const cert = job.certificates;
+        // Only include if certificate doesn't exist OR is not generated yet
+        return !cert || cert.status !== 'generated' || !cert.certificate_url;
+      });
+      
+      console.log('[GenerateCertificates] Filtered pending jobs:', {
+        total: allPendingJobs?.length || 0,
+        pending: pendingJobs.length,
+        filtered: (allPendingJobs?.length || 0) - pendingJobs.length,
+      });
 
       if (queueError) {
         throw new Error(`Failed to fetch pending jobs: ${queueError.message}`);

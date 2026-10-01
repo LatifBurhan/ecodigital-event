@@ -133,6 +133,29 @@ export async function processClientSideCertificates(
     try {
       console.log(`[ClientGen] Processing ${job.participantName}...`);
       
+      // Check if certificate already exists and is generated
+      const { data: existingCert } = await supabase
+        .from('certificates')
+        .select('status, certificate_url')
+        .eq('registration_id', job.registrationId)
+        .single();
+      
+      if (existingCert?.status === 'generated' && existingCert.certificate_url) {
+        console.log(`[ClientGen] ⊘ Skipping ${job.participantName} - already has generated certificate`);
+        
+        // Mark queue as completed (no need to regenerate)
+        await supabase
+          .from('certificate_queue')
+          .update({
+            status: 'completed',
+            processed_at: new Date().toISOString(),
+          })
+          .eq('id', job.jobId);
+        
+        processed++;
+        continue; // Skip to next job
+      }
+      
       // Mark as processing
       await supabase
         .from('certificate_queue')
