@@ -57,9 +57,11 @@ function ProfilPage() {
           setProfile(data);
           setFullName(data.full_name || "");
           setWhatsapp(data.whatsapp || "");
-          setIsEditing(false); // View mode by default
+          // Always start in view mode, even if fields are empty
+          // User can click "Edit Profil" to fill them
+          setIsEditing(false);
         } else {
-          // Profile doesn't exist yet - go straight to edit mode
+          // Profile doesn't exist at all - go straight to edit mode
           console.log("[Profil] Profile not found, enabling edit mode");
           setProfile(null);
           setFullName("");
@@ -189,6 +191,16 @@ function ProfilPage() {
 
         {/* Profile Card */}
         <Card className="rounded-2xl p-6 shadow-lg">
+          {/* Show helpful message if profile exists but fields are empty */}
+          {profile && !isEditing && (!fullName || !whatsapp) && (
+            <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+              <p className="font-medium mb-1">⚠️ Data Profil Belum Lengkap</p>
+              <p className="text-xs">
+                Klik "Edit Profil" di bawah untuk melengkapi nama dan nomor WhatsApp Anda.
+              </p>
+            </div>
+          )}
+          
           {!profile && isEditing && (
             <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800">
               <p className="font-medium mb-1">✨ Lengkapi Profil Anda</p>
@@ -223,18 +235,23 @@ function ProfilPage() {
                 <User className="size-4" />
                 Nama Lengkap
               </Label>
-              <Input
-                id="fullName"
-                type="text"
-                placeholder="Masukkan nama lengkap"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-                minLength={2}
-                maxLength={120}
-                disabled={!isEditing || saving}
-                className={!isEditing ? "bg-muted/50 cursor-not-allowed" : ""}
-              />
+              {!isEditing ? (
+                <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
+                  {fullName || <span className="text-muted-foreground italic">- Belum diisi -</span>}
+                </div>
+              ) : (
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Masukkan nama lengkap"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  minLength={2}
+                  maxLength={120}
+                  disabled={saving}
+                />
+              )}
             </div>
 
             {/* WhatsApp */}
@@ -243,19 +260,26 @@ function ProfilPage() {
                 <Phone className="size-4" />
                 Nomor WhatsApp
               </Label>
-              <Input
-                id="whatsapp"
-                type="tel"
-                placeholder="08xxxxxxxxxx"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                required
-                disabled={!isEditing || saving}
-                className={!isEditing ? "bg-muted/50 cursor-not-allowed" : ""}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Format: 08xxxxxxxxxx atau 628xxxxxxxxxx
-              </p>
+              {!isEditing ? (
+                <div className="rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
+                  {whatsapp || <span className="text-muted-foreground italic">- Belum diisi -</span>}
+                </div>
+              ) : (
+                <Input
+                  id="whatsapp"
+                  type="tel"
+                  placeholder="08xxxxxxxxxx"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  required
+                  disabled={saving}
+                />
+              )}
+              {!isEditing && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Format: 08xxxxxxxxxx atau 628xxxxxxxxxx
+                </p>
+              )}
             </div>
 
             {/* Action Buttons */}
