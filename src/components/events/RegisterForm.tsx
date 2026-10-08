@@ -613,7 +613,7 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
             </div>
             {errors.method && <p className="mt-1 text-xs text-destructive">{errors.method}</p>}
           </div>
-                              <Field label="Bukti pembayaran (gambar/PDF, maks 10 MB)" error={errors.proof}>
+                                        <Field label="Bukti pembayaran (gambar/PDF, maks 10 MB)" error={errors.proof}>
             <div className="space-y-4">
               {/* Preview area */}
               {proof && (
@@ -654,74 +654,82 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                 </div>
               )}
 
-              {/* MULTI-METHOD FILE UPLOAD APPROACH */}
+              {/* GALLERY UPLOAD - Multiple Approaches */}
               <div className="space-y-3">
                 
-                {/* Method 1: Camera Capture (Always Works) */}
+                {/* Approach 1: Button-triggered file input */}
                 <div>
                   <input
-                    id="camera-input"
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileChange}
-                    disabled={compressing}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="camera-input"
-                    className={cn(
-                      "flex items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed p-4 cursor-pointer transition-all hover:border-primary hover:bg-primary/5",
-                      compressing && "opacity-50 cursor-not-allowed pointer-events-none",
-                      proof ? "border-primary/30 bg-primary/5" : "border-border bg-card"
-                    )}
-                  >
-                    <svg className="size-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <div className="text-center">
-                      <p className="text-sm font-semibold">📷 Ambil Foto Langsung</p>
-                      <p className="text-xs text-muted-foreground">Buka kamera untuk foto bukti pembayaran</p>
-                    </div>
-                  </label>
-                </div>
-
-                {/* Method 2: File Input (Try Again) */}
-                <div>
-                  <input
-                    id="file-input"
+                    ref={(el) => {
+                      if (el) {
+                        // Force attach event listener directly
+                        el.onchange = handleFileChange;
+                      }
+                    }}
+                    id="gallery-input-1"
                     type="file"
                     accept="image/*,application/pdf"
-                    onChange={handleFileChange}
-                    disabled={compressing}
-                    className="hidden"
+                    style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
                   />
-                  <label
-                    htmlFor="file-input"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      console.log('🔥 [GALLERY DEBUG] Button clicked - triggering file picker');
+                      document.getElementById('gallery-input-1')?.click();
+                    }}
+                    disabled={compressing}
                     className={cn(
-                      "flex items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed p-4 cursor-pointer transition-all hover:border-primary hover:bg-primary/5",
-                      compressing && "opacity-50 cursor-not-allowed pointer-events-none",
-                      proof ? "border-primary/30 bg-primary/5" : "border-border bg-card"
+                      "w-full flex items-center justify-center gap-3 rounded-xl border-2 border-dashed p-6 cursor-pointer transition-all hover:border-primary hover:bg-primary/5",
+                      compressing && "opacity-50 cursor-not-allowed",
+                      proof ? "border-primary/50 bg-primary/5" : "border-border bg-card"
                     )}
                   >
                     <Upload className="size-6 text-primary" />
                     <div className="text-center">
-                      <p className="text-sm font-semibold">📁 Pilih dari Gallery</p>
-                      <p className="text-xs text-muted-foreground">Pilih foto/PDF yang sudah ada</p>
+                      <p className="text-sm font-semibold">📁 Pilih Foto/File dari Gallery</p>
+                      <p className="text-xs text-muted-foreground">Klik untuk membuka gallery dan pilih bukti pembayaran</p>
                     </div>
-                  </label>
+                  </button>
                 </div>
 
-                {/* Method 3: Direct Input (Last Resort) */}
-                <div className="p-4 border border-orange-200 bg-orange-50 rounded-xl">
-                  <p className="text-xs text-orange-700 font-medium mb-2">Jika kedua cara di atas tidak berfungsi:</p>
+                {/* Approach 2: Direct visible input (alternative) */}
+                <div className="border border-blue-200 bg-blue-50 rounded-xl p-4">
+                  <p className="text-xs text-blue-700 font-medium mb-2">📱 Alternatif (jika tombol di atas tidak berfungsi):</p>
                   <input
                     type="file"
                     accept="image/*,application/pdf"
-                    onChange={handleFileChange}
+                    onChange={(e) => {
+                      console.log('🔥 [GALLERY DEBUG] Direct input triggered');
+                      handleFileChange(e);
+                    }}
                     disabled={compressing}
-                    className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-orange-500 file:text-white hover:file:bg-orange-600"
+                    className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-500 file:text-white hover:file:bg-blue-600"
+                  />
+                </div>
+
+                {/* Approach 3: Text area for manual URL input (creative workaround) */}
+                <div className="border border-amber-200 bg-amber-50 rounded-xl p-4">
+                  <p className="text-xs text-amber-700 font-medium mb-2">💡 Solusi Kreatif:</p>
+                  <p className="text-xs text-amber-600 mb-2">
+                    Jika upload tidak berfungsi, Anda bisa:
+                    <br />• Screenshot bukti pembayaran
+                    <br />• Upload ke Google Drive/Dropbox  
+                    <br />• Share link-nya di form registrasi
+                  </p>
+                  <textarea
+                    placeholder="Paste link Google Drive/Dropbox/OneDrive bukti pembayaran di sini..."
+                    className="w-full p-2 text-xs border border-amber-300 rounded"
+                    rows={2}
+                    onChange={(e) => {
+                      if (e.target.value.trim()) {
+                        // Create a pseudo file object for link
+                        const linkFile = new File(['link:' + e.target.value], 'bukti-pembayaran-link.txt', {
+                          type: 'text/plain'
+                        });
+                        setProof(linkFile);
+                        toast.success('Link bukti pembayaran tersimpan');
+                      }
+                    }}
                   />
                 </div>
 
@@ -730,15 +738,15 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
               {compressing && (
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="size-4 animate-spin" />
-                  <span>Memproses foto...</span>
+                  <span>Memproses file...</span>
                 </div>
               )}
               
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">
                   {proof ? 
-                    "✅ File siap diupload!" : 
-                    "Pilih salah satu cara upload di atas (maksimal 10MB)"
+                    "✅ File/Link tersimpan - siap untuk registrasi!" : 
+                    "Pilih cara upload yang berfungsi di browser Anda"
                   }
                 </p>
               </div>
