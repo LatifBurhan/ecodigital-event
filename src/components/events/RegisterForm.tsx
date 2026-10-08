@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useEnsureProfile } from "@/hooks/use-ensure-profile";
 import { generateUUID } from "@/lib/eco";
-import imageCompression from "browser-image-compression";
 
 type Errors = Partial<Record<"method" | "proof", string>>;
 
@@ -40,62 +39,32 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
   const [manualName, setManualName] = useState("");
   const [manualWhatsapp, setManualWhatsapp] = useState("");
 
-  // Handler untuk file selection dengan compression dan proper preview
+  // Handler untuk file selection dengan proper preview
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('[RegisterForm] onChange triggered');
-    
     const file = e.target.files?.[0];
     
-    if (!file) {
-      console.log('[RegisterForm] No file selected');
-      return;
-    }
-
-    console.log('[RegisterForm] File selected:', {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      sizeKB: (file.size / 1024).toFixed(2) + ' KB',
-      sizeMB: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-    });
+    if (!file) return;
 
     // Reset error
-    try {
-      setErrors((prev) => ({ ...prev, proof: undefined }));
-      console.log('[RegisterForm] Step 1: Errors cleared');
-    } catch (err) {
-      console.error('[RegisterForm] Error clearing errors:', err);
-      alert(`Error Step 1: ${err}`);
-      return;
-    }
+    setErrors((prev) => ({ ...prev, proof: undefined }));
 
     // Cleanup old preview
     if (previewUrl) {
       try {
         URL.revokeObjectURL(previewUrl);
-        console.log('[RegisterForm] Step 2: Old preview revoked');
       } catch (err) {
         console.warn('[RegisterForm] Error revoking URL:', err);
       }
-      try {
-        setPreviewUrl(null);
-        console.log('[RegisterForm] Step 3: PreviewUrl set to null');
-      } catch (err) {
-        console.error('[RegisterForm] Error setting previewUrl to null:', err);
-        alert(`Error Step 3: ${err}`);
-        return;
-      }
+      setPreviewUrl(null);
     }
 
     try {
       setCompressing(true);
-      console.log('[RegisterForm] Step 4: Compressing state set to true');
 
       // Check if it's an image by extension (more reliable than type on mobile)
       const fileName = file.name.toLowerCase();
       const isImage = /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(fileName);
       const isPdf = fileName.endsWith('.pdf');
-      console.log('[RegisterForm] Step 5: File type detected:', { isImage, isPdf });
 
       if (!isImage && !isPdf) {
         throw new Error('Format file tidak didukung. Gunakan gambar atau PDF.');
@@ -105,55 +74,32 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
       if (file.size > 10 * 1024 * 1024) {
         throw new Error('Ukuran file maksimal 10 MB');
       }
-      console.log('[RegisterForm] Step 6: File validation passed');
 
-      let processedFile = file;
-      let previewBlob = file;
-
-      // SKIP COMPRESSION - Direct upload for maximum compatibility
-      // Compression causes issues with gallery files on many Android browsers
-      console.log('[RegisterForm] Step 7: Using original file without compression');
-      processedFile = file;
-      previewBlob = file;
+      // Use original file without compression for maximum compatibility
+      const processedFile = file;
 
       // Set processed file for upload
-      try {
-        setProof(processedFile);
-        console.log('[RegisterForm] Step 8: File set to state:', processedFile.name);
-      } catch (err) {
-        console.error('[RegisterForm] Error setting proof to state:', err);
-        alert(`Error Step 8 (setProof): ${err}`);
-        throw err;
-      }
+      setProof(processedFile);
 
       // Create preview using createObjectURL (fast, no memory issues)
       if (isImage) {
         try {
-          console.log('[RegisterForm] Step 9: Creating object URL...');
-          const objectUrl = URL.createObjectURL(previewBlob);
-          console.log('[RegisterForm] Step 10: Object URL created:', objectUrl);
-          
+          const objectUrl = URL.createObjectURL(file);
           setPreviewUrl(objectUrl);
-          console.log('[RegisterForm] Step 11: Preview URL set to state');
         } catch (previewError) {
           console.error('[RegisterForm] Preview creation failed:', previewError);
-          alert(`Error creating preview: ${previewError}`);
           toast.warning('Preview gagal dibuat, tapi file tetap siap diupload');
         }
       } else {
         // PDF: no preview, just set null
         setPreviewUrl(null);
-        console.log('[RegisterForm] Step 9-11: PDF file, no preview');
       }
 
-      console.log('[RegisterForm] Step 12: Showing success toast');
       toast.success(`✓ ${file.name} siap diupload`);
-      console.log('[RegisterForm] Step 13: ALL DONE!');
     } catch (error) {
       console.error('[RegisterForm] File handling error:', error);
       const message = error instanceof Error ? error.message : 'Gagal memproses file';
       
-      alert(`ERROR: ${message}\n\nCheck: ${error}`);
       toast.error(message);
       
       setErrors((prev) => ({ ...prev, proof: message }));
@@ -161,7 +107,6 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
       setPreviewUrl(null);
     } finally {
       setCompressing(false);
-      console.log('[RegisterForm] handleFileChange completed');
     }
   };
 
