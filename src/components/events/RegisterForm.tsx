@@ -41,6 +41,10 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
 
     // Enhanced Android-compatible file handler with robust error handling
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("🔥 [ANDROID DEBUG] handleFileChange TRIGGERED!");
+    console.log("🔥 [ANDROID DEBUG] UserAgent:", navigator.userAgent);
+    console.log("🔥 [ANDROID DEBUG] Event target:", e.target);
+    console.log("🔥 [ANDROID DEBUG] Files:", e.target.files);
     const file = e.target.files?.[0];
     
     if (!file) return;
@@ -609,8 +613,8 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
             </div>
             {errors.method && <p className="mt-1 text-xs text-destructive">{errors.method}</p>}
           </div>
-          <Field label="Bukti pembayaran (gambar/PDF, maks 10 MB)" error={errors.proof}>
-            <div className="space-y-3">
+                    <Field label="Bukti pembayaran (gambar/PDF, maks 10 MB)" error={errors.proof}>
+            <div className="space-y-4">
               {/* Preview area - show if file selected */}
               {proof && (
                 <div className="rounded-xl border-2 border-primary bg-primary/5 p-4">
@@ -653,54 +657,18 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                 </div>
               )}
 
-              {/* ANDROID CHROME COMPATIBLE INPUT SYSTEM */}
-              <div className="space-y-3">
-                {/* Single visible input for Android Chrome compatibility */}
-                <div className="relative">
-                  <input
-                    id="android-compatible-input"
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={handleFileChange}
-                    disabled={compressing}
-                    className={cn(
-                      "w-full text-sm border-2 border-dashed rounded-xl p-4",
-                      "file:mr-4 file:py-3 file:px-6",
-                      "file:rounded-xl file:border-0",
-                      "file:text-sm file:font-semibold",
-                      "file:bg-primary file:text-primary-foreground",
-                      "file:cursor-pointer file:transition-colors",
-                      "hover:file:bg-primary/90 hover:border-primary",
-                      "focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20",
-                      "disabled:opacity-50 disabled:cursor-not-allowed",
-                      proof 
-                        ? "border-primary bg-primary/5" 
-                        : "border-border bg-card"
-                    )}
-                  />
-                  
-                  {/* Custom styling overlay for better UX */}
-                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className={cn(
-                      "flex items-center gap-3 text-sm transition-opacity",
-                      proof ? "opacity-0" : "opacity-70"
-                    )}>
-                      <Upload className="size-5" />
-                      <span className="font-medium">Pilih Foto atau File PDF</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">
-                    {proof ? 
-                      "File siap diupload. Pilih file lain untuk mengganti." : 
-                      "Dari camera, gallery, atau file PDF (max 10MB)"
-                    }
-                  </p>
-                </div>
+              {/* CLEAN SINGLE INPUT - Android Chrome Compatible */}
+              <div className="w-full">
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileChange}
+                  disabled={compressing}
+                  style={{ width: '100%' }}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90 disabled:opacity-50"
+                />
               </div>
-
+              
               {compressing && (
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="size-4 animate-spin" />
@@ -708,9 +676,14 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                 </div>
               )}
               
-              <p className="text-xs text-muted-foreground text-center">
-                {proof ? "Pilih tombol untuk ganti foto" : "Ambil foto baru atau pilih dari gallery/file"}
-              </p>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">
+                  {proof ? 
+                    "File siap diupload. Pilih file lain untuk mengganti." : 
+                    "Pilih dari kamera, gallery, atau file PDF (maksimal 10MB)"
+                  }
+                </p>
+              </div>
             </div>
           </Field>
         </div>
