@@ -42,17 +42,27 @@ function ProfilPage() {
           .from("profiles")
           .select("full_name, whatsapp")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error("[Profil] Error loading profile:", error);
           toast.error("Gagal memuat profil");
+          setLoading(false);
           return;
         }
 
-        setProfile(data);
-        setFullName(data.full_name || "");
-        setWhatsapp(data.whatsapp || "");
+        // Profile exists
+        if (data) {
+          setProfile(data);
+          setFullName(data.full_name || "");
+          setWhatsapp(data.whatsapp || "");
+        } else {
+          // Profile doesn't exist yet - this is okay
+          console.log("[Profil] Profile not found, user can create it");
+          setProfile(null);
+          setFullName("");
+          setWhatsapp("");
+        }
       } catch (err) {
         console.error("[Profil] Error:", err);
         toast.error("Terjadi kesalahan");
@@ -92,16 +102,20 @@ function ProfilPage() {
           ? "62" + trimmedWa
           : trimmedWa;
 
+      // Use upsert to handle both insert and update
       const { error } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          id: user.id,
           full_name: trimmedName.slice(0, 120),
+          email: (user.email || "").toLowerCase(),
           whatsapp: normalizedWa,
-        })
-        .eq("id", user.id);
+        }, {
+          onConflict: "id"
+        });
 
       if (error) {
-        console.error("[Profil] Error updating profile:", error);
+        console.error("[Profil] Error saving profile:", error);
         throw new Error("Gagal menyimpan perubahan: " + error.message);
       }
 
@@ -162,6 +176,15 @@ function ProfilPage() {
 
         {/* Profile Card */}
         <Card className="rounded-2xl p-6 shadow-lg">
+          {!profile && (
+            <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800">
+              <p className="font-medium mb-1">✨ Lengkapi Profil Anda</p>
+              <p className="text-xs">
+                Profil Anda belum lengkap. Silakan isi nama dan nomor WhatsApp di bawah ini.
+              </p>
+            </div>
+          )}
+          
           <form onSubmit={handleSave} className="space-y-6">
             {/* Email (Read-only) */}
             <div>
