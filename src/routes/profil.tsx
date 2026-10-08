@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Loader2, User, Mail, Phone, ArrowLeft, Save } from "lucide-react";
+import { Loader2, User, Mail, Phone, ArrowLeft, Save, Edit, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ function ProfilPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<{
     full_name: string;
     whatsapp: string;
@@ -56,12 +57,14 @@ function ProfilPage() {
           setProfile(data);
           setFullName(data.full_name || "");
           setWhatsapp(data.whatsapp || "");
+          setIsEditing(false); // View mode by default
         } else {
-          // Profile doesn't exist yet - this is okay
-          console.log("[Profil] Profile not found, user can create it");
+          // Profile doesn't exist yet - go straight to edit mode
+          console.log("[Profil] Profile not found, enabling edit mode");
           setProfile(null);
           setFullName("");
           setWhatsapp("");
+          setIsEditing(true); // Edit mode for new profile
         }
       } catch (err) {
         console.error("[Profil] Error:", err);
@@ -124,12 +127,22 @@ function ProfilPage() {
         whatsapp: normalizedWa,
       });
 
+      setIsEditing(false); // Back to view mode
       toast.success("Profil berhasil diperbarui!");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal menyimpan perubahan");
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleCancelEdit() {
+    // Restore original values
+    if (profile) {
+      setFullName(profile.full_name || "");
+      setWhatsapp(profile.whatsapp || "");
+    }
+    setIsEditing(false);
   }
 
   if (authLoading || loading) {
@@ -176,7 +189,7 @@ function ProfilPage() {
 
         {/* Profile Card */}
         <Card className="rounded-2xl p-6 shadow-lg">
-          {!profile && (
+          {!profile && isEditing && (
             <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800">
               <p className="font-medium mb-1">✨ Lengkapi Profil Anda</p>
               <p className="text-xs">
@@ -219,7 +232,8 @@ function ProfilPage() {
                 required
                 minLength={2}
                 maxLength={120}
-                disabled={saving}
+                disabled={!isEditing || saving}
+                className={!isEditing ? "bg-muted/50 cursor-not-allowed" : ""}
               />
             </div>
 
@@ -236,32 +250,61 @@ function ProfilPage() {
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
                 required
-                disabled={saving}
+                disabled={!isEditing || saving}
+                className={!isEditing ? "bg-muted/50 cursor-not-allowed" : ""}
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 Format: 08xxxxxxxxxx atau 628xxxxxxxxxx
               </p>
             </div>
 
-            {/* Save Button */}
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full rounded-full"
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="size-4 animate-spin mr-2" />
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <Save className="size-4 mr-2" />
-                  Simpan Perubahan
-                </>
-              )}
-            </Button>
+            {/* Action Buttons */}
+            {isEditing ? (
+              <div className="flex gap-3">
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="flex-1 rounded-full"
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin mr-2" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="size-4 mr-2" />
+                      Simpan
+                    </>
+                  )}
+                </Button>
+                {profile && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="rounded-full"
+                    onClick={handleCancelEdit}
+                    disabled={saving}
+                  >
+                    <X className="size-4 mr-2" />
+                    Batal
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                className="w-full rounded-full"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className="size-4 mr-2" />
+                Edit Profil
+              </Button>
+            )}
           </form>
         </Card>
 
