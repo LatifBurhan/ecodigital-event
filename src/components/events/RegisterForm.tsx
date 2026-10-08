@@ -46,7 +46,6 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
     alert('DEBUG: onChange triggered!'); // DEBUGGING
     
     const file = e.target.files?.[0];
-    e.target.value = ''; // Reset input immediately
     
     if (!file) {
       console.log('[RegisterForm] No file selected');
@@ -596,50 +595,36 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                 </div>
               )}
 
-              {/* Native visible file input with button styling */}
-              <div className="relative">
+              {/* NATIVE FILE INPUT - FULLY VISIBLE, NO TRICKS */}
+              <div className="space-y-2">
                 <input
                   id="payment-proof-input"
                   type="file"
                   accept="image/*,application/pdf"
                   onChange={handleFileChange}
                   disabled={compressing}
-                  className="peer sr-only"
-                />
-                <label
-                  htmlFor="payment-proof-input"
                   className={cn(
-                    "flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-all touch-manipulation",
-                    proof 
-                      ? "border-primary bg-primary/5 hover:bg-primary/10" 
-                      : "border-border bg-card hover:border-primary hover:bg-primary/5",
-                    compressing && "opacity-50 cursor-wait pointer-events-none"
+                    "w-full text-sm",
+                    "file:mr-4 file:py-2 file:px-4",
+                    "file:rounded-xl file:border-0",
+                    "file:text-sm file:font-semibold",
+                    "file:bg-primary file:text-primary-foreground",
+                    "file:cursor-pointer",
+                    "hover:file:bg-primary/90",
+                    "disabled:opacity-50 disabled:cursor-not-allowed"
                   )}
-                >
-                  {compressing ? (
-                    <>
-                      <Loader2 className="size-5 animate-spin text-primary" />
-                      <span className="text-sm font-medium">Memproses...</span>
-                    </>
-                  ) : proof ? (
-                    <>
-                      <Upload className="size-5 text-primary" />
-                      <span className="text-sm font-medium text-primary">Ganti Foto</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="size-5" />
-                      <span className="text-sm font-medium">Pilih Foto/File</span>
-                    </>
-                  )}
-                </label>
+                />
+                {compressing && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" />
+                    <span>Memproses foto...</span>
+                  </div>
+                )}
               </div>
               
-              {!proof && (
-                <p className="text-xs text-muted-foreground text-center">
-                  Dari gallery, kamera, atau file PDF
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground text-center">
+                {proof ? "Pilih file lain jika ingin ganti" : "Dari gallery, kamera, atau file PDF"}
+              </p>
             </div>
           </Field>
         </div>
