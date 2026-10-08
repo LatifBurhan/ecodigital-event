@@ -613,7 +613,7 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
             </div>
             {errors.method && <p className="mt-1 text-xs text-destructive">{errors.method}</p>}
           </div>
-                                        <Field label="Bukti pembayaran (gambar/PDF, maks 10 MB)" error={errors.proof}>
+                                                  <Field label="Bukti pembayaran (gambar/PDF, maks 10 MB)" error={errors.proof}>
             <div className="space-y-4">
               {/* Preview area */}
               {proof && (
@@ -654,85 +654,41 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                 </div>
               )}
 
-              {/* GALLERY UPLOAD - Multiple Approaches */}
-              <div className="space-y-3">
-                
-                {/* Approach 1: Button-triggered file input */}
-                <div>
-                  <input
-                    ref={(el) => {
-                      if (el) {
-                        // Force attach event listener directly
-                        el.onchange = handleFileChange;
-                      }
-                    }}
-                    id="gallery-input-1"
-                    type="file"
-                    accept="image/*,application/pdf"
-                    style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      console.log('🔥 [GALLERY DEBUG] Button clicked - triggering file picker');
-                      document.getElementById('gallery-input-1')?.click();
-                    }}
-                    disabled={compressing}
-                    className={cn(
-                      "w-full flex items-center justify-center gap-3 rounded-xl border-2 border-dashed p-6 cursor-pointer transition-all hover:border-primary hover:bg-primary/5",
-                      compressing && "opacity-50 cursor-not-allowed",
-                      proof ? "border-primary/50 bg-primary/5" : "border-border bg-card"
-                    )}
-                  >
-                    <Upload className="size-6 text-primary" />
-                    <div className="text-center">
-                      <p className="text-sm font-semibold">📁 Pilih Foto/File dari Gallery</p>
-                      <p className="text-xs text-muted-foreground">Klik untuk membuka gallery dan pilih bukti pembayaran</p>
-                    </div>
-                  </button>
-                </div>
-
-                {/* Approach 2: Direct visible input (alternative) */}
-                <div className="border border-blue-200 bg-blue-50 rounded-xl p-4">
-                  <p className="text-xs text-blue-700 font-medium mb-2">📱 Alternatif (jika tombol di atas tidak berfungsi):</p>
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => {
-                      console.log('🔥 [GALLERY DEBUG] Direct input triggered');
-                      handleFileChange(e);
-                    }}
-                    disabled={compressing}
-                    className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-blue-500 file:text-white hover:file:bg-blue-600"
-                  />
-                </div>
-
-                {/* Approach 3: Text area for manual URL input (creative workaround) */}
-                <div className="border border-amber-200 bg-amber-50 rounded-xl p-4">
-                  <p className="text-xs text-amber-700 font-medium mb-2">💡 Solusi Kreatif:</p>
-                  <p className="text-xs text-amber-600 mb-2">
-                    Jika upload tidak berfungsi, Anda bisa:
-                    <br />• Screenshot bukti pembayaran
-                    <br />• Upload ke Google Drive/Dropbox  
-                    <br />• Share link-nya di form registrasi
-                  </p>
-                  <textarea
-                    placeholder="Paste link Google Drive/Dropbox/OneDrive bukti pembayaran di sini..."
-                    className="w-full p-2 text-xs border border-amber-300 rounded"
-                    rows={2}
-                    onChange={(e) => {
-                      if (e.target.value.trim()) {
-                        // Create a pseudo file object for link
-                        const linkFile = new File(['link:' + e.target.value], 'bukti-pembayaran-link.txt', {
-                          type: 'text/plain'
-                        });
-                        setProof(linkFile);
-                        toast.success('Link bukti pembayaran tersimpan');
-                      }
-                    }}
-                  />
-                </div>
-
+              {/* WORKING SOLUTION: Button-triggered file picker */}
+              <div>
+                <input
+                  ref={(el) => {
+                    if (el) {
+                      el.onchange = handleFileChange;
+                    }
+                  }}
+                  id="gallery-input"
+                  type="file"
+                  accept="image/*,application/pdf"
+                  style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    document.getElementById('gallery-input')?.click();
+                  }}
+                  disabled={compressing}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-3 rounded-xl border-2 border-dashed p-6 cursor-pointer transition-all hover:border-primary hover:bg-primary/5",
+                    compressing && "opacity-50 cursor-not-allowed",
+                    proof ? "border-primary/50 bg-primary/5" : "border-border bg-card"
+                  )}
+                >
+                  <Upload className="size-6 text-primary" />
+                  <div className="text-center">
+                    <p className="text-sm font-semibold">
+                      {proof ? "Ganti Foto/File" : "Pilih Foto/File dari Gallery"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {proof ? "Klik untuk memilih file lain" : "Pilih bukti pembayaran dari gallery atau file PDF"}
+                    </p>
+                  </div>
+                </button>
               </div>
               
               {compressing && (
@@ -745,8 +701,8 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">
                   {proof ? 
-                    "✅ File/Link tersimpan - siap untuk registrasi!" : 
-                    "Pilih cara upload yang berfungsi di browser Anda"
+                    "✅ File siap diupload!" : 
+                    "Mendukung gambar (JPG, PNG, HEIC) dan PDF - maksimal 10MB"
                   }
                 </p>
               </div>
