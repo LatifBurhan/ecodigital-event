@@ -95,14 +95,22 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
 
       // Compress images (converts HEIC to JPEG automatically)
       if (isImage) {
-        console.log('[RegisterForm] Compressing image...');
+        console.log('[RegisterForm] Starting compression...');
+        
         try {
-          const compressed = await imageCompression(file, {
+          // Add timeout to detect hanging compression
+          const compressionPromise = imageCompression(file, {
             maxSizeMB: 1,
             maxWidthOrHeight: 1600,
-            useWebWorker: true,
-            fileType: 'image/jpeg', // Convert everything to JPEG
+            useWebWorker: false, // DISABLE web worker - might cause issues on some Android browsers
+            fileType: 'image/jpeg',
           });
+
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Compression timeout')), 15000); // 15 second timeout
+          });
+
+          const compressed = await Promise.race([compressionPromise, timeoutPromise]) as Blob;
 
           console.log('[RegisterForm] Compression done:', {
             originalSize: (file.size / 1024).toFixed(2) + ' KB',
@@ -115,22 +123,29 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
             type: 'image/jpeg',
           });
           previewBlob = processedFile;
+          toast.success('Foto berhasil dikompres!');
         } catch (compressionError) {
           console.error('[RegisterForm] Compression failed:', compressionError);
-          // If compression fails, use original file
-          toast.warning('Kompresi gambar gagal, menggunakan file asli');
+          const errMsg = compressionError instanceof Error ? compressionError.message : 'Unknown error';
+          console.error('[RegisterForm] Error details:', errMsg);
+          
+          // FALLBACK: Use original file if compression fails
+          toast.warning('Kompresi gagal, menggunakan foto asli');
+          processedFile = file;
+          previewBlob = file;
         }
       }
 
       // Set processed file for upload
       setProof(processedFile);
+      console.log('[RegisterForm] File set to state:', processedFile.name);
 
       // Create preview using createObjectURL (fast, no memory issues)
       if (isImage) {
         try {
           const objectUrl = URL.createObjectURL(previewBlob);
           setPreviewUrl(objectUrl);
-          console.log('[RegisterForm] Preview URL created');
+          console.log('[RegisterForm] Preview URL created:', objectUrl);
         } catch (previewError) {
           console.error('[RegisterForm] Preview creation failed:', previewError);
           toast.warning('Preview gagal dibuat, tapi file tetap siap diupload');
@@ -141,16 +156,21 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
         console.log('[RegisterForm] PDF file, no preview');
       }
 
-      toast.success(`File "${file.name}" siap diupload`);
+      toast.success(`✓ ${file.name} siap diupload`);
     } catch (error) {
       console.error('[RegisterForm] File handling error:', error);
       const message = error instanceof Error ? error.message : 'Gagal memproses file';
+      
+      // Show error both in toast AND alert for debugging
       toast.error(message);
+      alert(`ERROR UPLOAD:\n${message}\n\nDetail: ${error}`);
+      
       setErrors((prev) => ({ ...prev, proof: message }));
       setProof(null);
       setPreviewUrl(null);
     } finally {
       setCompressing(false);
+      console.log('[RegisterForm] handleFileChange completed');
     }
   };
 
