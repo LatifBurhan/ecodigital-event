@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Menu, X, LogIn, LogOut, User, Ticket } from "lucide-react";
+import { ArrowRight, Menu, X, LogIn, LogOut, User, Ticket, UserCircle } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -80,11 +81,18 @@ export function SiteNav() {
                   <div className="px-3 py-2 text-sm">
                     <p className="truncate font-medium">{user.email}</p>
                   </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild className="cursor-pointer rounded-xl">
+                    <Link to="/profil">
+                      <UserCircle className="size-4 mr-2" /> Profil Saya
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer rounded-xl">
                     <Link to="/tiket">
                       <Ticket className="size-4 mr-2" /> Tiket Saya
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleLogout}
                     className="text-destructive focus:text-destructive cursor-pointer rounded-xl"
@@ -141,7 +149,16 @@ export function SiteNav() {
                   <Button
                     asChild
                     variant="outline"
-                    className="w-full rounded-full"
+                    className="w-full rounded-full justify-start"
+                  >
+                    <Link to="/profil" onClick={() => setOpen(false)}>
+                      <UserCircle className="size-4 mr-2" /> Profil Saya
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full rounded-full justify-start"
                   >
                     <Link to="/tiket" onClick={() => setOpen(false)}>
                       <Ticket className="size-4 mr-2" /> Tiket Saya
@@ -153,7 +170,7 @@ export function SiteNav() {
                       setOpen(false);
                       handleLogout();
                     }}
-                    className="w-full rounded-full text-destructive hover:text-destructive"
+                    className="w-full rounded-full text-destructive hover:text-destructive justify-start"
                   >
                     <LogOut className="size-4 mr-2" /> Keluar
                   </Button>
