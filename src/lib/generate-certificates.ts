@@ -24,10 +24,6 @@ export const generateCertificates = createServerFn({ method: 'POST' })
             name,
             email,
             event_id
-          ),
-          certificates!certificate_queue_registration_id_fkey(
-            status,
-            certificate_url
           )
         `)
         .eq('status', 'pending')
@@ -44,12 +40,39 @@ export const generateCertificates = createServerFn({ method: 'POST' })
         throw new Error(`Failed to fetch pending jobs: ${queueError.message}`);
       }
 
-      // Filter out jobs that already have generated certificates
-      const pendingJobs = (allPendingJobs || []).filter((job: any) => {
-        const cert = job.certificates;
-        // Only include if certificate doesn't exist OR is not generated yet
-        return !cert || cert.status !== 'generated' || !cert.certificate_url;
-      });
+      console.log('[GenerateCertificates] Found queue jobs:', allPendingJobs?.length || 0);
+
+      // For each job, check if certificate is already generated
+      const pendingJobs = [];
+      
+      for (const job of allPendingJobs || []) {
+        // Check certificate status separately for better debugging
+        const { data: existingCert, error: certError } = await supabaseAdmin
+          .from('certificates')
+          .select('id, status, certificate_url')
+          .eq('registration_id', job.registration_id)
+          .single();
+
+        if (certError && certError.code !== 'PGRST116') {
+          console.error('[GenerateCertificates] Certificate check error:', certError);
+          continue;
+        }
+
+        const needsGeneration = !existingCert || 
+                              existingCert.status !== 'generated' || 
+                              !existingCert.certificate_url;
+
+        console.log(`[GenerateCertificates] Job ${job.id} - ${job.event_registrations.name}:`, {
+          hasExistingCert: !!existingCert,
+          certStatus: existingCert?.status,
+          hasUrl: !!existingCert?.certificate_url,
+          needsGeneration
+        });
+
+        if (needsGeneration) {
+          pendingJobs.push(job);
+        }
+      }
       
       console.log('[GenerateCertificates] Filtered pending jobs:', {
         total: allPendingJobs?.length || 0,
