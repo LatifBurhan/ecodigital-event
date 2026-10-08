@@ -653,60 +653,51 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                 </div>
               )}
 
-              {/* TWO SEPARATE INPUTS - One for camera, one for gallery/files */}
-              <div className="grid grid-cols-2 gap-2">
-                {/* Camera Input */}
-                <div>
+              {/* ANDROID CHROME COMPATIBLE INPUT SYSTEM */}
+              <div className="space-y-3">
+                {/* Single visible input for Android Chrome compatibility */}
+                <div className="relative">
                   <input
-                    id="camera-input"
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileChange}
-                    disabled={compressing}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="camera-input"
-                    className={cn(
-                      "flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed p-4 text-center cursor-pointer transition-all touch-manipulation min-h-[100px]",
-                      proof 
-                        ? "border-primary/30 bg-primary/5 hover:bg-primary/10" 
-                        : "border-border bg-card hover:border-primary hover:bg-primary/5",
-                      compressing && "opacity-50 cursor-wait pointer-events-none"
-                    )}
-                  >
-                    <svg className="size-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span className="text-xs font-medium">Ambil Foto</span>
-                  </label>
-                </div>
-
-                {/* Gallery/File Input */}
-                <div>
-                  <input
-                    id="gallery-input"
+                    id="android-compatible-input"
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={handleFileChange}
                     disabled={compressing}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="gallery-input"
                     className={cn(
-                      "flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed p-4 text-center cursor-pointer transition-all touch-manipulation min-h-[100px]",
+                      "w-full text-sm border-2 border-dashed rounded-xl p-4",
+                      "file:mr-4 file:py-3 file:px-6",
+                      "file:rounded-xl file:border-0",
+                      "file:text-sm file:font-semibold",
+                      "file:bg-primary file:text-primary-foreground",
+                      "file:cursor-pointer file:transition-colors",
+                      "hover:file:bg-primary/90 hover:border-primary",
+                      "focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
                       proof 
-                        ? "border-primary/30 bg-primary/5 hover:bg-primary/10" 
-                        : "border-border bg-card hover:border-primary hover:bg-primary/5",
-                      compressing && "opacity-50 cursor-wait pointer-events-none"
+                        ? "border-primary bg-primary/5" 
+                        : "border-border bg-card"
                     )}
-                  >
-                    <Upload className="size-8 text-primary" />
-                    <span className="text-xs font-medium">Pilih File</span>
-                  </label>
+                  />
+                  
+                  {/* Custom styling overlay for better UX */}
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className={cn(
+                      "flex items-center gap-3 text-sm transition-opacity",
+                      proof ? "opacity-0" : "opacity-70"
+                    )}>
+                      <Upload className="size-5" />
+                      <span className="font-medium">Pilih Foto atau File PDF</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">
+                    {proof ? 
+                      "File siap diupload. Pilih file lain untuk mengganti." : 
+                      "Dari camera, gallery, atau file PDF (max 10MB)"
+                    }
+                  </p>
                 </div>
               </div>
 
