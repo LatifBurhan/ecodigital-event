@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useEnsureProfile } from "@/hooks/use-ensure-profile";
 import { generateUUID } from "@/lib/eco";
-import imageCompression from "browser-image-compression";
 
 type Errors = Partial<Record<"method" | "proof", string>>;
 
@@ -40,130 +39,200 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
   const [manualName, setManualName] = useState("");
   const [manualWhatsapp, setManualWhatsapp] = useState("");
 
-  // Handler untuk file selection dengan compression dan proper preview
+    // Enhanced Android-compatible file handler with robust error handling
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('[RegisterForm] onChange triggered');
-    
     const file = e.target.files?.[0];
     
-    if (!file) {
-      console.log('[RegisterForm] No file selected');
-      return;
-    }
+    if (!file) return;
 
-    console.log('[RegisterForm] File selected:', {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      sizeKB: (file.size / 1024).toFixed(2) + ' KB',
-      sizeMB: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-    });
-
-    // Reset error
-    try {
-      setErrors((prev) => ({ ...prev, proof: undefined }));
-      console.log('[RegisterForm] Step 1: Errors cleared');
-    } catch (err) {
-      console.error('[RegisterForm] Error clearing errors:', err);
-      alert(`Error Step 1: ${err}`);
-      return;
-    }
-
-    // Cleanup old preview
-    if (previewUrl) {
-      try {
-        URL.revokeObjectURL(previewUrl);
-        console.log('[RegisterForm] Step 2: Old preview revoked');
-      } catch (err) {
-        console.warn('[RegisterForm] Error revoking URL:', err);
+    // Enhanced file type detection - Android gallery files often have missing/incorrect MIME types
+    const detectFileType = (file: File) => {
+      const fileName = file.name.toLowerCase();
+      const originalType = file.type;
+      
+      // Use filename extension as primary method for Android compatibility
+      const isImageByExt = /\.(jpe?g|png|gif|webp|bmp|heic|heif|avif)$/i.test(fileName);
+      const isPdfByExt = fileName.endsWith('.pdf');
+      
+      // Fallback MIME type detection for gallery files
+      let mimeType = originalType;
+      if (!mimeType || mimeType === 'application/octet-stream' || mimeType === '') {
+        if (isImageByExt) {
+          const extMap: Record<string, string> = {
+            'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+            'png': 'image/png', 'gif': 'image/gif',
+            'webp': 'image/webp', 'heic': 'image/heic',
+            'heif': 'image/heif', 'avif': 'image/avif',
+            'bmp': 'image/bmp'
+          };
+          const ext = fileName.split('.').pop() || 'jpg';
+          mimeType = extMap[ext] || 'image/jpeg';
+        } else if (isPdfByExt) {
+          mimeType = 'application/pdf';
+        }
       }
+      
+      return { 
+        isImage: isImageByExt || originalType.startsWith('image/'),
+        isPdf: isPdfByExt || originalType === 'application/pdf',
+        mimeType 
+      };
+    };
+
+    // Safe state setters with error handling
+    const safeSetState = async (setter: () => void, context: string) => {
       try {
-        setPreviewUrl(null);
-        console.log('[RegisterForm] Step 3: PreviewUrl set to null');
+        setter();
+        return true;
       } catch (err) {
-        console.error('[RegisterForm] Error setting previewUrl to null:', err);
-        alert(`Error Step 3: ${err}`);
+        console.error(`[RegisterForm] Error in ${context}:`, err);
+        toast.error(`Gagal memproses file: ${context}`);
+        return false;
+      }
+    };
+
+    // Progressive preview generation with fallbacks
+    const createPreviewSafely = async (file: File): Promise<string | null> => {
+      // Strategy 1: createObjectURL (fastest, but may fail on Android)
+      try {
+        return URL.createObjectURL(file);
+      } catch (error) {
+        console.warn('[RegisterForm] createObjectURL failed, trying FileReader:', error);
+      }
+      
+      // Strategy 2: FileReader (more compatible with Android browsers)
+      try {
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.onerror = () => reject(new Error('FileReader failed'));
+          reader.readAsDataURL(file);
+        });
+      } catch (error) {
+        console.error('[RegisterForm] All preview methods failed:', error);
+        return null;
+      }
+    };
+
+    // Mobile browser detection for Android-specific handling
+    const isMobileAndroid = () => {
+      return /Android/i.test(navigator.userAgent);
+    };
+
+    // Main processing logic with comprehensive error handling
+    try {
+      // Clear previous errors
+      if (!(await safeSetState(() => setErrors((prev) => ({ ...prev, proof: undefined })), 'clearing errors'))) {
         return;
       }
-    }
 
-    try {
-      setCompressing(true);
-      console.log('[RegisterForm] Step 4: Compressing state set to true');
-
-      // Check if it's an image by extension (more reliable than type on mobile)
-      const fileName = file.name.toLowerCase();
-      const isImage = /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(fileName);
-      const isPdf = fileName.endsWith('.pdf');
-      console.log('[RegisterForm] Step 5: File type detected:', { isImage, isPdf });
-
-      if (!isImage && !isPdf) {
-        throw new Error('Format file tidak didukung. Gunakan gambar atau PDF.');
+      // Cleanup old preview
+      if (previewUrl) {
+        try {
+          URL.revokeObjectURL(previewUrl);
+        } catch (err) {
+          console.warn('[RegisterForm] Error revoking URL:', err);
+        }
+        if (!(await safeSetState(() => setPreviewUrl(null), 'clearing preview'))) {
+          return;
+        }
       }
 
-      // Validate size before processing
+      // Set processing state
+      if (!(await safeSetState(() => setCompressing(true), 'setting processing state'))) {
+        return;
+      }
+
+      // Enhanced file type detection
+      const { isImage, isPdf, mimeType } = detectFileType(file);
+      
+      if (isMobileAndroid()) {
+        console.log('[RegisterForm] Android browser detected - using enhanced compatibility mode');
+        console.log('[RegisterForm] File details:', {
+          name: file.name,
+          originalType: file.type,
+          detectedType: mimeType,
+          isImage,
+          isPdf,
+          size: `${(file.size / 1024 / 1024).toFixed(2)} MB`
+        });
+      }
+
+      if (!isImage && !isPdf) {
+        throw new Error('Format file tidak didukung. Gunakan gambar (JPG, PNG, WebP, HEIC) atau PDF.');
+      }
+
+      // File size validation
       if (file.size > 10 * 1024 * 1024) {
         throw new Error('Ukuran file maksimal 10 MB');
       }
-      console.log('[RegisterForm] Step 6: File validation passed');
 
-      let processedFile = file;
-      let previewBlob = file;
+      // Create enhanced file object with corrected MIME type for Android compatibility
+      const enhancedFile = new File([file], file.name, {
+        type: mimeType,
+        lastModified: file.lastModified
+      });
 
-      // SKIP COMPRESSION - Direct upload for maximum compatibility
-      // Compression causes issues with gallery files on many Android browsers
-      console.log('[RegisterForm] Step 7: Using original file without compression');
-      processedFile = file;
-      previewBlob = file;
-
-      // Set processed file for upload
-      try {
-        setProof(processedFile);
-        console.log('[RegisterForm] Step 8: File set to state:', processedFile.name);
-      } catch (err) {
-        console.error('[RegisterForm] Error setting proof to state:', err);
-        alert(`Error Step 8 (setProof): ${err}`);
-        throw err;
+      // Set file to state with enhanced error handling
+      if (!(await safeSetState(() => setProof(enhancedFile), 'setting file to state'))) {
+        throw new Error('Gagal menyimpan file. Coba refresh halaman dan upload ulang.');
       }
 
-      // Create preview using createObjectURL (fast, no memory issues)
+      // Generate preview for images with progressive fallback
       if (isImage) {
         try {
-          console.log('[RegisterForm] Step 9: Creating object URL...');
-          const objectUrl = URL.createObjectURL(previewBlob);
-          console.log('[RegisterForm] Step 10: Object URL created:', objectUrl);
-          
-          setPreviewUrl(objectUrl);
-          console.log('[RegisterForm] Step 11: Preview URL set to state');
+          const previewUrl = await createPreviewSafely(enhancedFile);
+          if (previewUrl) {
+            if (await safeSetState(() => setPreviewUrl(previewUrl), 'setting preview URL')) {
+              console.log('[RegisterForm] Preview generated successfully');
+            }
+          } else {
+            console.warn('[RegisterForm] Preview generation failed but continuing with upload');
+            toast.warning('Preview tidak dapat dibuat, tapi file siap diupload');
+          }
         } catch (previewError) {
-          console.error('[RegisterForm] Preview creation failed:', previewError);
-          alert(`Error creating preview: ${previewError}`);
+          console.error('[RegisterForm] Preview generation failed:', previewError);
           toast.warning('Preview gagal dibuat, tapi file tetap siap diupload');
         }
       } else {
-        // PDF: no preview, just set null
-        setPreviewUrl(null);
-        console.log('[RegisterForm] Step 9-11: PDF file, no preview');
+        // PDF: no preview needed
+        await safeSetState(() => setPreviewUrl(null), 'clearing preview for PDF');
       }
 
-      console.log('[RegisterForm] Step 12: Showing success toast');
+      // Success notification
       toast.success(`✓ ${file.name} siap diupload`);
-      console.log('[RegisterForm] Step 13: ALL DONE!');
+
     } catch (error) {
-      console.error('[RegisterForm] File handling error:', error);
+      console.error('[RegisterForm] File processing error:', error);
       const message = error instanceof Error ? error.message : 'Gagal memproses file';
       
-      alert(`ERROR: ${message}\n\nCheck: ${error}`);
+      // Show user-friendly error
       toast.error(message);
       
-      setErrors((prev) => ({ ...prev, proof: message }));
-      setProof(null);
-      setPreviewUrl(null);
+      // Clear file state on error
+      await safeSetState(() => {
+        setErrors((prev) => ({ ...prev, proof: message }));
+        setProof(null);
+        setPreviewUrl(null);
+      }, 'clearing state on error');
+
+      // Android-specific error context
+      if (isMobileAndroid()) {
+        console.error('[RegisterForm] Android-specific error context:', {
+          userAgent: navigator.userAgent,
+          fileDetails: file ? {
+            name: file.name,
+            type: file.type,
+            size: file.size
+          } : null,
+          errorDetails: error
+        });
+      }
     } finally {
-      setCompressing(false);
-      console.log('[RegisterForm] handleFileChange completed');
+      // Always clear processing state
+      await safeSetState(() => setCompressing(false), 'clearing processing state');
     }
-  };
+  };;
 
   // Cleanup preview URL on unmount
   useEffect(() => {
