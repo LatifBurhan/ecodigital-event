@@ -43,17 +43,14 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
   // Handler untuk file selection dengan compression dan proper preview
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('[RegisterForm] onChange triggered');
-    alert('DEBUG: onChange triggered!'); // DEBUGGING
     
     const file = e.target.files?.[0];
     
     if (!file) {
       console.log('[RegisterForm] No file selected');
-      alert('DEBUG: No file selected'); // DEBUGGING
       return;
     }
 
-    alert(`DEBUG: File selected - ${file.name}`); // DEBUGGING
     console.log('[RegisterForm] File selected:', {
       name: file.name,
       type: file.type,
@@ -95,48 +92,11 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
       let processedFile = file;
       let previewBlob = file;
 
-      // Compress images (converts HEIC to JPEG automatically)
-      if (isImage) {
-        console.log('[RegisterForm] Starting compression...');
-        
-        try {
-          // Add timeout to detect hanging compression
-          const compressionPromise = imageCompression(file, {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1600,
-            useWebWorker: false, // DISABLE web worker - might cause issues on some Android browsers
-            fileType: 'image/jpeg',
-          });
-
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Compression timeout')), 15000); // 15 second timeout
-          });
-
-          const compressed = await Promise.race([compressionPromise, timeoutPromise]) as Blob;
-
-          console.log('[RegisterForm] Compression done:', {
-            originalSize: (file.size / 1024).toFixed(2) + ' KB',
-            compressedSize: (compressed.size / 1024).toFixed(2) + ' KB',
-            reduction: (((file.size - compressed.size) / file.size) * 100).toFixed(1) + '%',
-          });
-
-          // Use compressed file for both preview and upload
-          processedFile = new File([compressed], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
-            type: 'image/jpeg',
-          });
-          previewBlob = processedFile;
-          toast.success('Foto berhasil dikompres!');
-        } catch (compressionError) {
-          console.error('[RegisterForm] Compression failed:', compressionError);
-          const errMsg = compressionError instanceof Error ? compressionError.message : 'Unknown error';
-          console.error('[RegisterForm] Error details:', errMsg);
-          
-          // FALLBACK: Use original file if compression fails
-          toast.warning('Kompresi gagal, menggunakan foto asli');
-          processedFile = file;
-          previewBlob = file;
-        }
-      }
+      // SKIP COMPRESSION - Direct upload for maximum compatibility
+      // Compression causes issues with gallery files on many Android browsers
+      console.log('[RegisterForm] Using original file without compression');
+      processedFile = file;
+      previewBlob = file;
 
       // Set processed file for upload
       setProof(processedFile);
@@ -163,9 +123,7 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
       console.error('[RegisterForm] File handling error:', error);
       const message = error instanceof Error ? error.message : 'Gagal memproses file';
       
-      // Show error both in toast AND alert for debugging
       toast.error(message);
-      alert(`ERROR UPLOAD:\n${message}\n\nDetail: ${error}`);
       
       setErrors((prev) => ({ ...prev, proof: message }));
       setProof(null);
