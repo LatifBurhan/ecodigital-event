@@ -584,35 +584,72 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                 </div>
               )}
 
-              {/* NATIVE FILE INPUT - FULLY VISIBLE, NO TRICKS */}
-              <div className="space-y-2">
-                <input
-                  id="payment-proof-input"
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={handleFileChange}
-                  disabled={compressing}
-                  className={cn(
-                    "w-full text-sm",
-                    "file:mr-4 file:py-2 file:px-4",
-                    "file:rounded-xl file:border-0",
-                    "file:text-sm file:font-semibold",
-                    "file:bg-primary file:text-primary-foreground",
-                    "file:cursor-pointer",
-                    "hover:file:bg-primary/90",
-                    "disabled:opacity-50 disabled:cursor-not-allowed"
-                  )}
-                />
-                {compressing && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" />
-                    <span>Memproses foto...</span>
-                  </div>
-                )}
+              {/* TWO SEPARATE INPUTS - One for camera, one for gallery/files */}
+              <div className="grid grid-cols-2 gap-2">
+                {/* Camera Input */}
+                <div>
+                  <input
+                    id="camera-input"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileChange}
+                    disabled={compressing}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="camera-input"
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed p-4 text-center cursor-pointer transition-all touch-manipulation min-h-[100px]",
+                      proof 
+                        ? "border-primary/30 bg-primary/5 hover:bg-primary/10" 
+                        : "border-border bg-card hover:border-primary hover:bg-primary/5",
+                      compressing && "opacity-50 cursor-wait pointer-events-none"
+                    )}
+                  >
+                    <svg className="size-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="text-xs font-medium">Ambil Foto</span>
+                  </label>
+                </div>
+
+                {/* Gallery/File Input */}
+                <div>
+                  <input
+                    id="gallery-input"
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleFileChange}
+                    disabled={compressing}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="gallery-input"
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed p-4 text-center cursor-pointer transition-all touch-manipulation min-h-[100px]",
+                      proof 
+                        ? "border-primary/30 bg-primary/5 hover:bg-primary/10" 
+                        : "border-border bg-card hover:border-primary hover:bg-primary/5",
+                      compressing && "opacity-50 cursor-wait pointer-events-none"
+                    )}
+                  >
+                    <Upload className="size-8 text-primary" />
+                    <span className="text-xs font-medium">Pilih File</span>
+                  </label>
+                </div>
               </div>
+
+              {compressing && (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" />
+                  <span>Memproses foto...</span>
+                </div>
+              )}
               
               <p className="text-xs text-muted-foreground text-center">
-                {proof ? "Pilih file lain jika ingin ganti" : "Dari gallery, kamera, atau file PDF"}
+                {proof ? "Pilih tombol untuk ganti foto" : "Ambil foto baru atau pilih dari gallery/file"}
               </p>
             </div>
           </Field>
