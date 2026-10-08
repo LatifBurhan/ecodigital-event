@@ -613,20 +613,18 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
             </div>
             {errors.method && <p className="mt-1 text-xs text-destructive">{errors.method}</p>}
           </div>
-                    <Field label="Bukti pembayaran (gambar/PDF, maks 10 MB)" error={errors.proof}>
+                              <Field label="Bukti pembayaran (gambar/PDF, maks 10 MB)" error={errors.proof}>
             <div className="space-y-4">
-              {/* Preview area - show if file selected */}
+              {/* Preview area */}
               {proof && (
                 <div className="rounded-xl border-2 border-primary bg-primary/5 p-4">
                   <div className="flex flex-col items-center gap-3 w-full">
-                    {/* Show checkmark icon */}
                     <div className="rounded-full bg-primary/10 p-3">
                       <svg className="size-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     
-                    {/* Preview gambar atau icon PDF */}
                     {previewUrl ? (
                       <div className="relative w-full max-w-xs rounded-lg overflow-hidden border-2 border-primary">
                         <img 
@@ -645,7 +643,6 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                       </div>
                     ) : null}
                     
-                    {/* File info */}
                     <div className="flex flex-col items-center gap-1">
                       <p className="text-sm font-semibold text-primary">✓ File terpilih</p>
                       <p className="text-xs text-muted-foreground break-all max-w-[250px] text-center">{proof.name}</p>
@@ -657,16 +654,77 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                 </div>
               )}
 
-              {/* CLEAN SINGLE INPUT - Android Chrome Compatible */}
-              <div className="w-full">
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={handleFileChange}
-                  disabled={compressing}
-                  style={{ width: '100%' }}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90 disabled:opacity-50"
-                />
+              {/* MULTI-METHOD FILE UPLOAD APPROACH */}
+              <div className="space-y-3">
+                
+                {/* Method 1: Camera Capture (Always Works) */}
+                <div>
+                  <input
+                    id="camera-input"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileChange}
+                    disabled={compressing}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="camera-input"
+                    className={cn(
+                      "flex items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed p-4 cursor-pointer transition-all hover:border-primary hover:bg-primary/5",
+                      compressing && "opacity-50 cursor-not-allowed pointer-events-none",
+                      proof ? "border-primary/30 bg-primary/5" : "border-border bg-card"
+                    )}
+                  >
+                    <svg className="size-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <div className="text-center">
+                      <p className="text-sm font-semibold">📷 Ambil Foto Langsung</p>
+                      <p className="text-xs text-muted-foreground">Buka kamera untuk foto bukti pembayaran</p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Method 2: File Input (Try Again) */}
+                <div>
+                  <input
+                    id="file-input"
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleFileChange}
+                    disabled={compressing}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="file-input"
+                    className={cn(
+                      "flex items-center justify-center gap-3 w-full rounded-xl border-2 border-dashed p-4 cursor-pointer transition-all hover:border-primary hover:bg-primary/5",
+                      compressing && "opacity-50 cursor-not-allowed pointer-events-none",
+                      proof ? "border-primary/30 bg-primary/5" : "border-border bg-card"
+                    )}
+                  >
+                    <Upload className="size-6 text-primary" />
+                    <div className="text-center">
+                      <p className="text-sm font-semibold">📁 Pilih dari Gallery</p>
+                      <p className="text-xs text-muted-foreground">Pilih foto/PDF yang sudah ada</p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Method 3: Direct Input (Last Resort) */}
+                <div className="p-4 border border-orange-200 bg-orange-50 rounded-xl">
+                  <p className="text-xs text-orange-700 font-medium mb-2">Jika kedua cara di atas tidak berfungsi:</p>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleFileChange}
+                    disabled={compressing}
+                    className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-orange-500 file:text-white hover:file:bg-orange-600"
+                  />
+                </div>
+
               </div>
               
               {compressing && (
@@ -679,8 +737,8 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">
                   {proof ? 
-                    "File siap diupload. Pilih file lain untuk mengganti." : 
-                    "Pilih dari kamera, gallery, atau file PDF (maksimal 10MB)"
+                    "✅ File siap diupload!" : 
+                    "Pilih salah satu cara upload di atas (maksimal 10MB)"
                   }
                 </p>
               </div>
