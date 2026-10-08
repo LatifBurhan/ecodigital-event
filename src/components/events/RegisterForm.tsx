@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "@tanstack/react-router";
-import { Loader2, Send, Upload, LogIn, Ticket } from "lucide-react";
+import { Loader2, Send, Upload, LogIn, Ticket, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useEnsureProfile } from "@/hooks/use-ensure-profile";
 import { generateUUID } from "@/lib/eco";
+import imageCompression from "browser-image-compression";
 
 type Errors = Partial<Record<"method" | "proof", string>>;
 
@@ -39,116 +40,118 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
   const [manualName, setManualName] = useState("");
   const [manualWhatsapp, setManualWhatsapp] = useState("");
 
-  // Handler untuk file selection - dengan preview
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handler untuk file selection dengan compression dan proper preview
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('[RegisterForm] onChange triggered');
-    console.log('[RegisterForm] Event type:', e.type);
-    console.log('[RegisterForm] Files object:', e.target.files);
-    console.log('[RegisterForm] Files length:', e.target.files?.length);
     
     const file = e.target.files?.[0];
-    
-    console.log('[RegisterForm] File selected:', file);
+    e.target.value = ''; // Reset input immediately
     
     if (!file) {
-      console.log('[RegisterForm] No file selected - user cancelled');
-      // Don't clear existing file if user just cancelled
+      console.log('[RegisterForm] No file selected');
       return;
     }
 
-    console.log('[RegisterForm] File details:', {
+    console.log('[RegisterForm] File selected:', {
       name: file.name,
       type: file.type,
       size: file.size,
-      lastModified: file.lastModified,
+      sizeKB: (file.size / 1024).toFixed(2) + ' KB',
+      sizeMB: (file.size / 1024 / 1024).toFixed(2) + ' MB',
     });
 
-    // Validate file size immediately
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('Ukuran file maksimal 10 MB');
-      e.target.value = ''; // Reset input
-      return;
-    }
-
-    // Reset error untuk proof
+    // Reset error
     setErrors((prev) => ({ ...prev, proof: undefined }));
-    
-    // Revoke old preview URL to free memory
+
+    // Cleanup old preview
     if (previewUrl) {
       try {
         URL.revokeObjectURL(previewUrl);
       } catch (err) {
-        console.warn('[RegisterForm] Error revoking old URL:', err);
+        console.warn('[RegisterForm] Error revoking URL:', err);
       }
       setPreviewUrl(null);
     }
-    
-    // Set file immediately
-    setProof(file);
-    console.log('[RegisterForm] File state set');
-    
-    // Try to create preview - with better error handling and fallback
+
     try {
-      // Check if it's an image by file extension as fallback
-      const isImageByName = /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(file.name);
-      const isImageByType = file.type.startsWith('image/');
-      
-      console.log('[RegisterForm] Image detection:', { isImageByName, isImageByType });
-      
-      if (isImageByType || isImageByName) {
-        // For iOS HEIC files, use FileReader always
-        const isHeic = /\.(heic|heif)$/i.test(file.name) || 
-                       file.type.includes('heic') || 
-                       file.type.includes('heif');
-        
-        if (isHeic) {
-          console.log('[RegisterForm] HEIC/HEIF detected, using FileReader');
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            if (event.target?.result) {
-              setPreviewUrl(event.target.result as string);
-              console.log('[RegisterForm] HEIC Preview created with FileReader');
-            }
-          };
-          reader.onerror = (error) => {
-            console.error('[RegisterForm] FileReader error for HEIC:', error);
-          };
-          reader.readAsDataURL(file);
-        } else {
-          // Try URL.createObjectURL first for other formats
-          try {
-            const newPreviewUrl = URL.createObjectURL(file);
-            setPreviewUrl(newPreviewUrl);
-            console.log('[RegisterForm] Preview created with URL.createObjectURL');
-          } catch (urlError) {
-            console.warn('[RegisterForm] URL.createObjectURL failed, trying FileReader:', urlError);
-            
-            // Fallback to FileReader for better mobile compatibility
-            const reader = new FileReader();
-            reader.onload = (event) => {
-              if (event.target?.result) {
-                setPreviewUrl(event.target.result as string);
-                console.log('[RegisterForm] Preview created with FileReader');
-              }
-            };
-            reader.onerror = (error) => {
-              console.error('[RegisterForm] FileReader error:', error);
-            };
-            reader.readAsDataURL(file);
-          }
+      setCompressing(true);
+
+      // Check if it's an image by extension (more reliable than type on mobile)
+      const fileName = file.name.toLowerCase();
+      const isImage = /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(fileName);
+      const isPdf = fileName.endsWith('.pdf');
+
+      if (!isImage && !isPdf) {
+        throw new Error('Format file tidak didukung. Gunakan gambar atau PDF.');
+      }
+
+      // Validate size before processing
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('Ukuran file maksimal 10 MB');
+      }
+
+      let processedFile = file;
+      let previewBlob = file;
+
+      // Compress images (converts HEIC to JPEG automatically)
+      if (isImage) {
+        console.log('[RegisterForm] Compressing image...');
+        try {
+          const compressed = await imageCompression(file, {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1600,
+            useWebWorker: true,
+            fileType: 'image/jpeg', // Convert everything to JPEG
+          });
+
+          console.log('[RegisterForm] Compression done:', {
+            originalSize: (file.size / 1024).toFixed(2) + ' KB',
+            compressedSize: (compressed.size / 1024).toFixed(2) + ' KB',
+            reduction: (((file.size - compressed.size) / file.size) * 100).toFixed(1) + '%',
+          });
+
+          // Use compressed file for both preview and upload
+          processedFile = new File([compressed], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+            type: 'image/jpeg',
+          });
+          previewBlob = processedFile;
+        } catch (compressionError) {
+          console.error('[RegisterForm] Compression failed:', compressionError);
+          // If compression fails, use original file
+          toast.warning('Kompresi gambar gagal, menggunakan file asli');
+        }
+      }
+
+      // Set processed file for upload
+      setProof(processedFile);
+
+      // Create preview using createObjectURL (fast, no memory issues)
+      if (isImage) {
+        try {
+          const objectUrl = URL.createObjectURL(previewBlob);
+          setPreviewUrl(objectUrl);
+          console.log('[RegisterForm] Preview URL created');
+        } catch (previewError) {
+          console.error('[RegisterForm] Preview creation failed:', previewError);
+          toast.warning('Preview gagal dibuat, tapi file tetap siap diupload');
         }
       } else {
-        console.log('[RegisterForm] Not an image file, skipping preview');
+        // PDF: no preview, just set null
+        setPreviewUrl(null);
+        console.log('[RegisterForm] PDF file, no preview');
       }
-    } catch (err) {
-      console.error('[RegisterForm] Error creating preview:', err);
-      // Don't fail, just skip preview
+
+      toast.success(`File "${file.name}" siap diupload`);
+    } catch (error) {
+      console.error('[RegisterForm] File handling error:', error);
+      const message = error instanceof Error ? error.message : 'Gagal memproses file';
+      toast.error(message);
+      setErrors((prev) => ({ ...prev, proof: message }));
+      setProof(null);
+      setPreviewUrl(null);
+    } finally {
+      setCompressing(false);
     }
-    
-    toast.success(`File "${file.name}" berhasil dipilih`);
-    
-    // Reset input value so same file can be selected again
-    e.target.value = '';
   };
 
   // Cleanup preview URL on unmount
@@ -553,8 +556,8 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                       </svg>
                     </div>
                     
-                    {/* Preview gambar jika ada */}
-                    {previewUrl && (
+                    {/* Preview gambar atau icon PDF */}
+                    {previewUrl ? (
                       <div className="relative w-full max-w-xs rounded-lg overflow-hidden border-2 border-primary">
                         <img 
                           src={previewUrl} 
@@ -567,7 +570,11 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                           }}
                         />
                       </div>
-                    )}
+                    ) : proof.name.toLowerCase().endsWith('.pdf') ? (
+                      <div className="flex items-center justify-center w-full max-w-xs h-32 rounded-lg border-2 border-primary bg-primary/5">
+                        <FileText className="size-12 text-primary" />
+                      </div>
+                    ) : null}
                     
                     {/* File info - always show */}
                     <div className="flex flex-col items-center gap-2">
@@ -603,7 +610,7 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
               <input
                 id="payment-proof-input"
                 type="file"
-                accept="image/*,.heic,.heif,image/heic,image/heif,image/jpeg,image/jpg,image/png,image/gif,image/webp,application/pdf"
+                accept="image/*,application/pdf"
                 className="absolute opacity-0 w-0 h-0 overflow-hidden"
                 onChange={handleFileChange}
                 disabled={compressing}
