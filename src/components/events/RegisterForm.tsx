@@ -433,6 +433,10 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
   }
 
   function validate() {
+    console.log('🔥 [VALIDATE DEBUG] Validating form...');
+    console.log('🔥 [VALIDATE DEBUG] Method:', method);
+    console.log('🔥 [VALIDATE DEBUG] Proof:', proof ? { name: proof.name, size: proof.size, type: proof.type } : null);
+    console.log('🔥 [VALIDATE DEBUG] Event is_paid:', event.is_paid);
     const e: Errors = {};
     if (event.is_paid) {
       if (!method) e.method = "Pilih metode pembayaran.";
@@ -460,10 +464,20 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
       }
     }
     setErrors(e);
-    return Object.keys(e).length === 0;
+    const isValid = Object.keys(e).length === 0;
+    console.log('🔥 [VALIDATE DEBUG] Validation errors:', e);
+    console.log('🔥 [VALIDATE DEBUG] Form is valid:', isValid);
+    return isValid;
   }
 
   async function submit(ev: React.FormEvent) {
+    console.log('🔥 [SUBMIT DEBUG] Submit button clicked!');
+    console.log('🔥 [SUBMIT DEBUG] Event:', ev);
+    console.log('🔥 [SUBMIT DEBUG] Loading state:', loading);
+    console.log('🔥 [SUBMIT DEBUG] Compressing state:', compressing);
+    console.log('🔥 [SUBMIT DEBUG] Method selected:', method);
+    console.log('🔥 [SUBMIT DEBUG] Proof file:', proof ? { name: proof.name, size: proof.size } : null);
+    console.log('🔥 [SUBMIT DEBUG] Event is_paid:', event.is_paid);
     ev.preventDefault();
     if (loading || !validate()) return;
     setLoading(true);
