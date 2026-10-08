@@ -40,17 +40,19 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
   const [manualWhatsapp, setManualWhatsapp] = useState("");
 
   // Handler untuk file selection - dengan preview
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('[RegisterForm] onChange triggered');
+    console.log('[RegisterForm] Event type:', e.type);
+    console.log('[RegisterForm] Files object:', e.target.files);
+    console.log('[RegisterForm] Files length:', e.target.files?.length);
+    
     const file = e.target.files?.[0];
     
-    console.log('[RegisterForm] onChange triggered');
-    console.log('[RegisterForm] Files:', e.target.files);
     console.log('[RegisterForm] File selected:', file);
     
     if (!file) {
-      console.log('[RegisterForm] No file selected');
-      setProof(null);
-      setPreviewUrl(null);
+      console.log('[RegisterForm] No file selected - user cancelled');
+      // Don't clear existing file if user just cancelled
       return;
     }
 
@@ -61,17 +63,29 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
       lastModified: file.lastModified,
     });
 
+    // Validate file size immediately
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal 10 MB');
+      e.target.value = ''; // Reset input
+      return;
+    }
+
     // Reset error untuk proof
     setErrors((prev) => ({ ...prev, proof: undefined }));
     
     // Revoke old preview URL to free memory
     if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
+      try {
+        URL.revokeObjectURL(previewUrl);
+      } catch (err) {
+        console.warn('[RegisterForm] Error revoking old URL:', err);
+      }
       setPreviewUrl(null);
     }
     
     // Set file immediately
     setProof(file);
+    console.log('[RegisterForm] File state set');
     
     // Try to create preview - with better error handling and fallback
     try {
@@ -79,28 +93,49 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
       const isImageByName = /\.(jpe?g|png|gif|webp|bmp|heic|heif)$/i.test(file.name);
       const isImageByType = file.type.startsWith('image/');
       
+      console.log('[RegisterForm] Image detection:', { isImageByName, isImageByType });
+      
       if (isImageByType || isImageByName) {
-        // Try URL.createObjectURL first
-        try {
-          const newPreviewUrl = URL.createObjectURL(file);
-          setPreviewUrl(newPreviewUrl);
-          console.log('[RegisterForm] Preview created with URL.createObjectURL');
-        } catch (urlError) {
-          console.warn('[RegisterForm] URL.createObjectURL failed, trying FileReader:', urlError);
-          
-          // Fallback to FileReader for better mobile compatibility
+        // For iOS HEIC files, use FileReader always
+        const isHeic = /\.(heic|heif)$/i.test(file.name) || 
+                       file.type.includes('heic') || 
+                       file.type.includes('heif');
+        
+        if (isHeic) {
+          console.log('[RegisterForm] HEIC/HEIF detected, using FileReader');
           const reader = new FileReader();
           reader.onload = (event) => {
             if (event.target?.result) {
               setPreviewUrl(event.target.result as string);
-              console.log('[RegisterForm] Preview created with FileReader');
+              console.log('[RegisterForm] HEIC Preview created with FileReader');
             }
           };
           reader.onerror = (error) => {
-            console.error('[RegisterForm] FileReader error:', error);
-            // Don't set preview, but file is still set
+            console.error('[RegisterForm] FileReader error for HEIC:', error);
           };
           reader.readAsDataURL(file);
+        } else {
+          // Try URL.createObjectURL first for other formats
+          try {
+            const newPreviewUrl = URL.createObjectURL(file);
+            setPreviewUrl(newPreviewUrl);
+            console.log('[RegisterForm] Preview created with URL.createObjectURL');
+          } catch (urlError) {
+            console.warn('[RegisterForm] URL.createObjectURL failed, trying FileReader:', urlError);
+            
+            // Fallback to FileReader for better mobile compatibility
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              if (event.target?.result) {
+                setPreviewUrl(event.target.result as string);
+                console.log('[RegisterForm] Preview created with FileReader');
+              }
+            };
+            reader.onerror = (error) => {
+              console.error('[RegisterForm] FileReader error:', error);
+            };
+            reader.readAsDataURL(file);
+          }
         }
       } else {
         console.log('[RegisterForm] Not an image file, skipping preview');
@@ -493,15 +528,15 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
           </div>
           <Field label="Bukti pembayaran (gambar/PDF, maks 10 MB)" error={errors.proof}>
             <div className="space-y-3">
-              {/* Input file dengan style yang lebih jelas untuk HP */}
+              {/* Single input approach - styled label with robust mobile handling */}
               <label 
                 htmlFor="payment-proof-input"
                 className={cn(
-                  "flex cursor-pointer items-center justify-center gap-3 rounded-xl border-2 border-dashed bg-card p-6 text-center transition-all active:scale-95",
+                  "block cursor-pointer rounded-xl border-2 border-dashed bg-card p-6 text-center transition-all active:scale-[0.98] touch-manipulation",
                   proof 
                     ? "border-primary bg-primary/5" 
                     : "border-border hover:border-primary hover:bg-primary/5",
-                  compressing && "opacity-50 cursor-wait"
+                  compressing && "opacity-50 cursor-wait pointer-events-none"
                 )}
               >
                 {compressing ? (
@@ -564,13 +599,15 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                 )}
               </label>
               
+              {/* Single file input - NOT hidden, using opacity trick for better mobile compatibility */}
               <input
                 id="payment-proof-input"
                 type="file"
-                accept="image/*"
-                className="sr-only"
+                accept="image/*,.heic,.heif,image/heic,image/heif,image/jpeg,image/jpg,image/png,image/gif,image/webp,application/pdf"
+                className="absolute opacity-0 w-0 h-0 overflow-hidden"
                 onChange={handleFileChange}
                 disabled={compressing}
+                aria-label="Upload bukti pembayaran"
               />
             </div>
           </Field>

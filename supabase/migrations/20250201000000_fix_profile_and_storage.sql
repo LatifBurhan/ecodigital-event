@@ -254,12 +254,13 @@ END $$;
 -- PART 2: FIX STORAGE POLICIES FOR PAYMENT PROOFS
 -- ============================================================
 
--- Drop existing policies for payment-proofs
+-- Drop ALL existing policies for payment-proofs (including variations)
 DROP POLICY IF EXISTS "Anyone upload payment proof" ON storage.objects;
 DROP POLICY IF EXISTS "Admins read payment proofs" ON storage.objects;
 DROP POLICY IF EXISTS "Admins delete payment proofs" ON storage.objects;
 DROP POLICY IF EXISTS "Public upload payment proof" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated upload payment proof" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated read own payment proofs" ON storage.objects;
 
 -- Create more permissive upload policy for payment-proofs
 -- This allows both anonymous and authenticated users to upload
