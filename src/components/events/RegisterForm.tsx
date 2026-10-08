@@ -43,15 +43,18 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
   // Handler untuk file selection dengan compression dan proper preview
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('[RegisterForm] onChange triggered');
+    alert('DEBUG: onChange triggered!'); // DEBUGGING
     
     const file = e.target.files?.[0];
     e.target.value = ''; // Reset input immediately
     
     if (!file) {
       console.log('[RegisterForm] No file selected');
+      alert('DEBUG: No file selected'); // DEBUGGING
       return;
     }
 
+    alert(`DEBUG: File selected - ${file.name}`); // DEBUGGING
     console.log('[RegisterForm] File selected:', {
       name: file.name,
       type: file.type,
@@ -551,25 +554,11 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
           </div>
           <Field label="Bukti pembayaran (gambar/PDF, maks 10 MB)" error={errors.proof}>
             <div className="space-y-3">
-              {/* Single input approach - styled label with robust mobile handling */}
-              <label 
-                htmlFor="payment-proof-input"
-                className={cn(
-                  "block cursor-pointer rounded-xl border-2 border-dashed bg-card p-6 text-center transition-all active:scale-[0.98] touch-manipulation",
-                  proof 
-                    ? "border-primary bg-primary/5" 
-                    : "border-border hover:border-primary hover:bg-primary/5",
-                  compressing && "opacity-50 cursor-wait pointer-events-none"
-                )}
-              >
-                {compressing ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="size-8 animate-spin text-primary" />
-                    <span className="text-sm font-medium">Memproses...</span>
-                  </div>
-                ) : proof ? (
+              {/* Preview area - show if file selected */}
+              {proof && (
+                <div className="rounded-xl border-2 border-primary bg-primary/5 p-4">
                   <div className="flex flex-col items-center gap-3 w-full">
-                    {/* Show checkmark icon always when file selected */}
+                    {/* Show checkmark icon */}
                     <div className="rounded-full bg-primary/10 p-3">
                       <svg className="size-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -585,7 +574,6 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                           className="w-full h-auto object-contain max-h-48"
                           onError={(e) => {
                             console.error('[RegisterForm] Image preview failed to load');
-                            // Hide image on error but keep file info visible
                             e.currentTarget.style.display = 'none';
                           }}
                         />
@@ -596,46 +584,62 @@ export function RegisterForm({ event }: { event: PublicEvent }) {
                       </div>
                     ) : null}
                     
-                    {/* File info - always show */}
-                    <div className="flex flex-col items-center gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-primary">✓ File terpilih</p>
-                        <p className="mt-1 text-xs text-muted-foreground break-all max-w-[250px] px-2">{proof.name}</p>
-                        <p className="mt-1 text-xs font-mono text-muted-foreground">
-                          {(proof.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                        {proof.type && (
-                          <p className="mt-0.5 text-xs text-muted-foreground opacity-70">
-                            {proof.type}
-                          </p>
-                        )}
-                      </div>
-                      <p className="text-xs text-primary font-medium mt-2">Tap untuk ganti foto</p>
+                    {/* File info */}
+                    <div className="flex flex-col items-center gap-1">
+                      <p className="text-sm font-semibold text-primary">✓ File terpilih</p>
+                      <p className="text-xs text-muted-foreground break-all max-w-[250px] text-center">{proof.name}</p>
+                      <p className="text-xs font-mono text-muted-foreground">
+                        {(proof.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
                     </div>
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="rounded-full bg-muted p-3">
-                      <Upload className="size-6" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">Pilih Foto/File</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Tap untuk memilih dari gallery atau kamera</p>
-                    </div>
-                  </div>
-                )}
-              </label>
+                </div>
+              )}
+
+              {/* Native visible file input with button styling */}
+              <div className="relative">
+                <input
+                  id="payment-proof-input"
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleFileChange}
+                  disabled={compressing}
+                  className="peer sr-only"
+                />
+                <label
+                  htmlFor="payment-proof-input"
+                  className={cn(
+                    "flex items-center justify-center gap-2 w-full rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-all touch-manipulation",
+                    proof 
+                      ? "border-primary bg-primary/5 hover:bg-primary/10" 
+                      : "border-border bg-card hover:border-primary hover:bg-primary/5",
+                    compressing && "opacity-50 cursor-wait pointer-events-none"
+                  )}
+                >
+                  {compressing ? (
+                    <>
+                      <Loader2 className="size-5 animate-spin text-primary" />
+                      <span className="text-sm font-medium">Memproses...</span>
+                    </>
+                  ) : proof ? (
+                    <>
+                      <Upload className="size-5 text-primary" />
+                      <span className="text-sm font-medium text-primary">Ganti Foto</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="size-5" />
+                      <span className="text-sm font-medium">Pilih Foto/File</span>
+                    </>
+                  )}
+                </label>
+              </div>
               
-              {/* Single file input - NOT hidden, using opacity trick for better mobile compatibility */}
-              <input
-                id="payment-proof-input"
-                type="file"
-                accept="image/*,application/pdf"
-                className="absolute opacity-0 w-0 h-0 overflow-hidden"
-                onChange={handleFileChange}
-                disabled={compressing}
-                aria-label="Upload bukti pembayaran"
-              />
+              {!proof && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Dari gallery, kamera, atau file PDF
+                </p>
+              )}
             </div>
           </Field>
         </div>
